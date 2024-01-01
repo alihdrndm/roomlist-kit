@@ -1,0 +1,5 @@
+Line,Last Name,First Name,Arrival,Departure,Room Type,Adults,Children,Shares With,Email
+1,Okafor,Ada,11/10/2026,11/13/2026,KING,1,0,,ada.okafor@example.com
+2,Lindqvist,Jonas,11/10/2026,11/14/2026,QQ,1,0,,jonas.lindqvist@example.com
+3,Marchetti,Elena,11/10/2026,11/14/2026,QQ,1,0,2,elena.marchetti@example.com
+4,Tanaka,Hiro,11/11/2026,11/13/2026,KING,2,1,,

@@ -1,0 +1,6 @@
+# Source files are LF everywhere, whatever core.autocrlf says on the machine.
+* text=auto eol=lf
+# Fixtures and golden files are compared byte for byte (Maestro needs \r\n,
+# canonical-csv needs \n), so git must never rewrite their line endings.
+fixtures/** -text
+*.xlsx binary

@@ -1,0 +1,10 @@
+{
+  "propertyCode": "DEMO",
+  "blockCode": "TECH26",
+  "groupReservationNumber": "48213",
+  "startDate": "2026-11-10",
+  "endDate": "2026-11-14",
+  "shoulderDays": 1,
+  "roomTypes": ["KING", "QQ"],
+  "maxOccupancy": { "KING": 3, "QQ": 4 }
+}
