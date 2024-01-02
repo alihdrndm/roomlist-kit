@@ -1,7 +1,19 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseRoomingList } from "./index.js";
+import {
+  BlockContextSchema,
+  parseRoomingList,
+  validateRoomingList,
+} from "./index.js";
 import type { ParsedEntry } from "./model.js";
+
+const readJson = (path: string): unknown =>
+  JSON.parse(
+    readFileSync(
+      new URL(`../../../fixtures/${path}`, import.meta.url),
+      "utf-8",
+    ),
+  );
 
 const fixture = (name: string) =>
   new Uint8Array(
@@ -138,5 +150,41 @@ describe("fixture files", () => {
         "11:departureDate",
       ]);
     });
+  });
+
+  it("all-rules: parse + validate produce exactly the expected (ruleId, row) set", async () => {
+    const block = BlockContextSchema.parse(readJson("blocks/tech26.json"));
+    const parsed = await parseRoomingList(fixture("all-rules.csv"));
+    const issues = [
+      ...parsed.issues,
+      ...validateRoomingList(
+        { block, entries: parsed.entries },
+        { entryRows: parsed.entryRows },
+      ),
+    ];
+    const key = (pair: { ruleId: string; row: number | null }) =>
+      `${pair.ruleId}@${pair.row ?? "-"}`;
+    const actual = issues
+      .map((issue) => key({ ruleId: issue.ruleId, row: issue.row ?? null }))
+      .sort();
+    const expected = (
+      readJson("expected/all-rules.issues.json") as {
+        ruleId: string;
+        row: number | null;
+      }[]
+    )
+      .map(key)
+      .sort();
+    expect(actual).toEqual(expected);
+  });
+
+  it("all-rules: every R- and W-rule in the spec (plus R015) appears", () => {
+    const expected = readJson("expected/all-rules.issues.json") as {
+      ruleId: string;
+    }[];
+    const ids = new Set(expected.map((pair) => pair.ruleId));
+    for (let n = 1; n <= 15; n++)
+      expect(ids).toContain(`R${String(n).padStart(3, "0")}`);
+    for (let n = 201; n <= 208; n++) expect(ids).toContain(`W${n}`);
   });
 });
