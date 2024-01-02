@@ -33,6 +33,8 @@ export const RULES = {
   W206: { code: "SHARER_MISMATCH", severity: "warning" },
   W207: { code: "NAME_SPLIT_GUESSED", severity: "warning" },
   W208: { code: "GENDER_UNRECOGNISED", severity: "warning" },
+  X001: { code: "EXPORT_FIELD_REQUIRED", severity: "error" },
+  X101: { code: "EXPORT_OVER_RECOMMENDED_LIMIT", severity: "warning" },
 } as const satisfies Record<string, { code: string; severity: Severity }>;
 
 export type RuleId = keyof typeof RULES;

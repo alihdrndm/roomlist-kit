@@ -33,7 +33,9 @@
   },
   "dependencies": {
     "csv-parse": "^7.0.3",
+    "csv-stringify": "^6.9.0",
     "exceljs": "^4.4.0",
+    "xmlbuilder2": "^4.0.3",
     "zod": "^4.6.5"
   }
 }
