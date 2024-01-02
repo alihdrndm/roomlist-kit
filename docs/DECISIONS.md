@@ -213,3 +213,25 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 - **Known limitation, carried forward:** `exportRoomingList` cannot see parser-level errors whose field was defaulted or dropped (R006, R007 bad cell, R014, R015). The CLI (M5) and API (M6) must also refuse to convert when `ParseResult.issues` contains any error, not only on `ExportPreconditionError`.
 - **Known limitation:** a name containing a C0 control character (for example U+0001) makes the OPERA 5 XML not well-formed XML 1.0. The parser's `cleanName` only collapses whitespace. Not fixed in M3; the spec defines no rule for it.
 - **A1 README text:** the README must tell users to compare the OPERA 5 output with their property's template and set `rootElement` / `recordElement` (M8).
+
+## 2026-10-06 (M4)
+
+### `sharesWith` change shows the primary's name (owner decision)
+- **Spec said:** `sharesWith` is compared as the primary's name key; the change shape is `{ field, before, after }`.
+- **Did:** `before` / `after` show the primary's name as written (`"Last, First"`, or `"Last"` without a first name), and `null` when the guest shares with nobody. The comparison itself uses the name key, so `"Müller"` vs `"Muller"` is not a change.
+- **Why:** chosen by the repo owner; the web Compare page shows `before → after` to planners.
+
+### `null` in `DiffReport.changed[].changes`
+- **Spec said (API conventions):** never return `null` for absent optional fields. **Spec said (Diff):** `before: string | null, after: string | null`.
+- **Did:** followed the Diff section: `null` means "no value on that side" in a change record. Everywhere else absent keys are still omitted.
+- **Why:** the Diff section is the specific rule for this shape.
+
+### Diff edge cases the spec leaves open
+- A confirmation number that appears twice on one side pairs in line order; the leftover entry goes on to name matching.
+- Confirmation numbers are trimmed before the case-insensitive comparison.
+- In step 2, an entry with no arrival date sorts before every dated entry of the same name.
+- A sharer pointing at a line that does not exist (only possible in an invalid list, which the API refuses) is compared as "missing line N" and shown as `line N (not in the list)`.
+- `added`, `removed` and `changed[].before/after` use the `ParsedEntry` shape (the lists being compared are parsed lists; see M1).
+- Values in a change are strings (`String(n)` for numbers), in the order of the spec's compared-field list, with `sharesWith` last.
+- `list-v2.csv` also renames "Jonson, Erik" to "Johnson, Erik" with the same confirmation number. This is beyond the spec's list of differences on purpose: it proves step 1 (confirmation number) wins over name, and the pair counts as unchanged because names are not a compared field. The counts the spec asks for (3 added, 2 removed, dates on 2, room type on 1, 1 re-link) are unaffected.
+- Side effect of comparing `sharesWith` by the primary's name key (spec step 4): if a primary's name is corrected but the pair is matched by confirmation number, each of its sharers shows a `sharesWith` change although they still share the same booking. Kept as the spec defines it.

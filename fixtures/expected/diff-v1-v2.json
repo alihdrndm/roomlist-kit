@@ -1,0 +1,9 @@
+{
+  "added": 3,
+  "removed": 2,
+  "changed": 4,
+  "unchanged": 10,
+  "roomNightsBefore": 28,
+  "roomNightsAfter": 32,
+  "roomNightsDelta": 4
+}
