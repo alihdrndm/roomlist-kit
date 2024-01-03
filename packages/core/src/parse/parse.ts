@@ -10,7 +10,7 @@ import { DateOrderEvidence } from "./dates.js";
 import { detectFormat } from "./detect-format.js";
 import { findHeaderRow, isBlankRow, mapHeaders } from "./headers.js";
 import { normalizeRow } from "./normalize.js";
-import { readXlsxRows, type SparseRows } from "./xlsx.js";
+import { readXlsxRows, type SparseRows, TITLE_ROW_ALLOWANCE } from "./xlsx.js";
 
 const DEFAULT_MAX_ROWS = 5000;
 
@@ -33,16 +33,14 @@ export async function parseRoomingList(
   if (detected.kind === "rejected") return failed("csv", [detected.issue]);
   const format = detected.kind;
 
-  let rows: SparseRows;
-  if (detected.kind === "xlsx") {
-    const read = await readXlsxRows(input, options.sheetName);
-    if (read.kind === "rejected") return failed(format, [read.issue]);
-    rows = read.rows;
-  } else {
-    const read = readCsvRows(detected.text);
-    if (read.kind === "rejected") return failed(format, [read.issue]);
-    rows = read.rows;
-  }
+  // Both readers stop once the file is clearly over the row limit (plus room for
+  // title rows above the header), so an oversized file costs little to refuse.
+  const read =
+    detected.kind === "xlsx"
+      ? await readXlsxRows(input, options.sheetName, maxRows)
+      : await readCsvRows(detected.text, maxRows + TITLE_ROW_ALLOWANCE);
+  if (read.kind === "rejected") return failed(format, [read.issue]);
+  const rows: SparseRows = read.rows;
 
   // Step 4–6: find and map the header row, check required columns.
   const headerIndex = findHeaderRow(rows, options.columnMap);
@@ -101,11 +99,15 @@ export async function parseRoomingList(
     );
   }
   issues.push(...mapping.warnings.finish(headerRowNumber));
-  if (dataRows.length > maxRows) {
+  if (read.truncated || dataRows.length > maxRows) {
+    // When reading stopped early the real total is unknown, only that it is too many.
+    const count = read.truncated
+      ? `more than ${maxRows}`
+      : String(dataRows.length);
     issues.push(
       makeIssue(
         "F007",
-        `The file has ${dataRows.length} guest rows; the limit is ${maxRows}. Split it into smaller files.`,
+        `The file has ${count} guest rows; the limit is ${maxRows}. Split it into smaller files.`,
       ),
     );
     return failed(format, issues, mapping.columns, dataRows.length);

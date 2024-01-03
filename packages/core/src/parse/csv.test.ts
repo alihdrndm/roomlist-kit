@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { detectDelimiter, readCsvRows } from "./csv.js";
 
-const rowsOf = (text: string) => {
-  const read = readCsvRows(text);
+const rowsOf = async (text: string) => {
+  const read = await readCsvRows(text);
   if (read.kind !== "rows") throw new Error(read.issue.message);
   return read.rows;
 };
 
 describe("detectDelimiter", () => {
-  it("picks the delimiter that occurs most in the first non-empty line", () => {
+  it("picks the delimiter that occurs most in the first non-empty line", async () => {
     expect(detectDelimiter("a,b,c\n")).toBe(",");
     expect(detectDelimiter("\n\na;b;c\n1,2")).toBe(";");
     expect(detectDelimiter("a\tb\tc")).toBe("\t");
   });
 
-  it("falls back to comma on a tie or when there is no delimiter", () => {
+  it("falls back to comma on a tie or when there is no delimiter", async () => {
     expect(detectDelimiter("a;b,c")).toBe(",");
     expect(detectDelimiter("a;b\tc")).toBe(",");
     expect(detectDelimiter("title only")).toBe(",");
@@ -22,36 +22,38 @@ describe("detectDelimiter", () => {
 });
 
 describe("readCsvRows", () => {
-  it("keeps quoted delimiters, quotes and line breaks inside one cell", () => {
-    const rows = rowsOf('Name,Notes\n"Okafor, Ada","said ""hi""\nthen left"\n');
+  it("keeps quoted delimiters, quotes and line breaks inside one cell", async () => {
+    const rows = await rowsOf(
+      'Name,Notes\n"Okafor, Ada","said ""hi""\nthen left"\n',
+    );
     expect(rows).toEqual([
       ["Name", "Notes"],
       ["Okafor, Ada", 'said "hi"\nthen left'],
     ]);
   });
 
-  it("keeps empty lines so row numbers match the file, and allows ragged rows", () => {
-    const rows = rowsOf("a;b;c\n\n1;2\n1;2;3;4\n");
+  it("keeps empty lines so row numbers match the file, and allows ragged rows", async () => {
+    const rows = await rowsOf("a;b;c\n\n1;2\n1;2;3;4\n");
     expect(rows).toHaveLength(4);
     expect(rows[2]).toEqual(["1", "2"]);
     expect(rows[3]).toHaveLength(4);
   });
 
-  it("does no type casting", () => {
-    expect(rowsOf("007,1.50")).toEqual([["007", "1.50"]]);
+  it("does no type casting", async () => {
+    expect(await rowsOf("007,1.50")).toEqual([["007", "1.50"]]);
   });
 });
 
 describe("readCsvRows quoting", () => {
-  it("keeps a stray quote inside an unquoted cell as text", () => {
-    expect(rowsOf('Last Name\nO"Brien\n')).toEqual([
+  it("keeps a stray quote inside an unquoted cell as text", async () => {
+    expect(await rowsOf('Last Name\nO"Brien\n')).toEqual([
       ["Last Name"],
       ['O"Brien'],
     ]);
   });
 
-  it("F004: a quote that is never closed rejects the file", () => {
-    const read = readCsvRows(
+  it("F004: a quote that is never closed rejects the file", async () => {
+    const read = await readCsvRows(
       'Last Name,Notes\nOkafor,"never closed\nLindqvist,x\n',
     );
     expect(read.kind).toBe("rejected");

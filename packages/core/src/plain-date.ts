@@ -79,6 +79,40 @@ export function dateParts(date: IsoDate): {
   };
 }
 
+const MS_PER_DAY_EXCEL = 24 * 3600 * 1000;
+
+/**
+ * The calendar date of an Excel date number. Excel counts days from 1900 (or from
+ * 1904 when the workbook says so); the formula is the one exceljs uses, so a date
+ * cell reads the same as it did with exceljs. A time of day is dropped.
+ */
+export function excelSerialToDate(
+  serial: number,
+  date1904: boolean,
+): IsoDate | undefined {
+  if (!Number.isFinite(serial)) return undefined;
+  const ms = Math.round(
+    (serial - 25569 + (date1904 ? 1462 : 0)) * MS_PER_DAY_EXCEL,
+  );
+  const utc = new Date(ms);
+  return fromParts(
+    utc.getUTCFullYear(),
+    utc.getUTCMonth() + 1,
+    utc.getUTCDate(),
+  );
+}
+
+/** The calendar date part of an ISO 8601 date-time written in a cell (`t="d"`), read in UTC. */
+export function isoDateTimeToDate(text: string): IsoDate | undefined {
+  const utc = new Date(text);
+  if (Number.isNaN(utc.getTime())) return undefined;
+  return fromParts(
+    utc.getUTCFullYear(),
+    utc.getUTCMonth() + 1,
+    utc.getUTCDate(),
+  );
+}
+
 function toUtc(date: IsoDate): Date {
   return new Date(`${date}T00:00:00Z`);
 }

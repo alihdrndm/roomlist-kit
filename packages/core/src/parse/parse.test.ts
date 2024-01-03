@@ -224,7 +224,12 @@ describe("parseRoomingList on very large files", () => {
     const text = header + row.repeat(Math.ceil((5 * 1024 * 1024) / row.length));
     const result = await parseRoomingList(csv(text), { maxRows: 5000 });
     expect(ruleIds(result)).toEqual(["F007"]);
-    expect(result.rowCount).toBeGreaterThan(200_000);
+    // Reading stops once the file is clearly over the limit, so the total is not counted.
+    expect(result.rowCount).toBeGreaterThan(5000);
+    expect(result.rowCount).toBeLessThan(200_000);
+    expect(result.issues[0]?.message).toBe(
+      "The file has more than 5000 guest rows; the limit is 5000. Split it into smaller files.",
+    );
     expect(result.entries).toEqual([]);
     // About 0.8 s normally; coverage instrumentation makes it several times slower.
   }, 30_000);
