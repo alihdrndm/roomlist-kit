@@ -1,10 +1,6 @@
 import {
   BlockContextSchema,
-  IssueSchema,
-  ParsedEntrySchema,
   ParseOptionsSchema,
-  ParseResultSchema,
-  SummarySchema,
   TARGET_IDS,
 } from "@alihdrndm/roomlist-core";
 import { z } from "zod";
@@ -69,18 +65,6 @@ export const DiffBodySchema = z.strictObject({
   options: optionsPart.optional(),
 });
 export type DiffBody = z.infer<typeof DiffBodySchema>;
-
-/** The 200 body of POST /v1/rooming-lists/validate. */
-export const ValidateReportSchema = z.strictObject({
-  ok: z.boolean(),
-  format: z.enum(["csv", "xlsx"]),
-  rowCount: z.int(),
-  columns: ParseResultSchema.shape.columns,
-  entries: z.array(ParsedEntrySchema),
-  issues: z.array(IssueSchema),
-  summary: SummarySchema,
-});
-export type ValidateReport = z.infer<typeof ValidateReportSchema>;
 
 /** The part of a Standard Schema issue this file needs (Zod adds `code` and `keys`). */
 type SchemaIssue = {

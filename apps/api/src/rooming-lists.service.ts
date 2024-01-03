@@ -12,17 +12,14 @@ import {
   sortIssues,
   summarize,
   UnknownTargetError,
+  type ValidateReport,
   validateRoomingList,
 } from "@alihdrndm/roomlist-core";
 import { Inject, Injectable } from "@nestjs/common";
 import type { Config } from "./config.js";
 import { CONFIG } from "./config.module.js";
 import { ApiError } from "./errors.js";
-import {
-  type ApiParseOptions,
-  type ValidateReport,
-  validationError,
-} from "./schemas.js";
+import { type ApiParseOptions, validationError } from "./schemas.js";
 
 export type LoadedList = {
   parsed: ParseResult;

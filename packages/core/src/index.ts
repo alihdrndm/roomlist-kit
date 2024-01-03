@@ -38,7 +38,13 @@ export {
   type IsoDate,
   parseIsoDate,
 } from "./plain-date.js";
-export { type Summary, SummarySchema, summarize } from "./summarize.js";
+export {
+  type Summary,
+  SummarySchema,
+  summarize,
+  type ValidateReport,
+  ValidateReportSchema,
+} from "./summarize.js";
 export {
   type ValidateOptions,
   validateRoomingList,

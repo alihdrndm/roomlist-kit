@@ -4,6 +4,7 @@ import {
   IssueSchema,
   listTargets,
   TargetsResponseSchema,
+  ValidateReportSchema,
 } from "@alihdrndm/roomlist-core";
 import type {
   ApiBodyOptions,
@@ -18,7 +19,6 @@ import {
   ConvertBodySchema,
   DiffBodySchema,
   ValidateBodySchema,
-  ValidateReportSchema,
 } from "./schemas.js";
 
 // Schemas that exist only in the HTTP layer. They are built from core's schemas,

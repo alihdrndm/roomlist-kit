@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { IsoDateSchema, type ParsedEntry, type RoomingList } from "./model.js";
+import {
+  IsoDateSchema,
+  IssueSchema,
+  type ParsedEntry,
+  ParsedEntrySchema,
+  ParseResultSchema,
+  type RoomingList,
+} from "./model.js";
 import {
   compareDates,
   diffDays,
@@ -26,6 +33,22 @@ export const SummarySchema = z.strictObject({
   byNight: z.array(z.strictObject({ date: IsoDateSchema, rooms: z.int() })),
 });
 export type Summary = z.infer<typeof SummarySchema>;
+
+/**
+ * Everything a validation run tells a planner: the parsed list, every issue, and
+ * the summary. The API's POST /v1/rooming-lists/validate returns exactly this, and
+ * the web app reads it, so both use this one schema.
+ */
+export const ValidateReportSchema = z.strictObject({
+  ok: z.boolean(),
+  format: ParseResultSchema.shape.format,
+  rowCount: z.int(),
+  columns: ParseResultSchema.shape.columns,
+  entries: z.array(ParsedEntrySchema),
+  issues: z.array(IssueSchema),
+  summary: SummarySchema,
+});
+export type ValidateReport = z.infer<typeof ValidateReportSchema>;
 
 const NO_ROOM_TYPE = "(none)";
 

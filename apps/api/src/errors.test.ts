@@ -26,7 +26,10 @@ describe("docs/ERRORS.md", () => {
   });
 
   it("documents no code that the API cannot return", () => {
-    const documented = [...doc.matchAll(/<a id="([A-Z_]+)"><\/a>/g)].map(
+    // Codes under "Web app only" come from apps/web's proxy, not the API.
+    const apiPart = doc.split("## Web app only")[0] ?? doc;
+    expect(apiPart.length).toBeLessThan(doc.length);
+    const documented = [...apiPart.matchAll(/<a id="([A-Z_]+)"><\/a>/g)].map(
       (match) => match[1],
     );
     expect(documented.sort()).toEqual([...codes].sort());

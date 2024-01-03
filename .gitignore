@@ -7,3 +7,7 @@ coverage
 playwright-report
 test-results
 *.tsbuildinfo
+blob-report
+# Written again by `next dev` on every start; the repo keeps one CLAUDE.md (docs/DECISIONS.md, M0).
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
