@@ -111,8 +111,10 @@ export function lookupHeader(
   return ALIAS_LOOKUP.get(normaliseHeader(header)) ?? null;
 }
 
-export function isBlankRow(cells: string[]): boolean {
-  return cells.every((cell) => cell.trim() === "");
+/** A row with no cells at all (an Excel row that was never used) counts as blank too. */
+export function isBlankRow(cells: readonly string[] | undefined): boolean {
+  // every() skips the holes of a sparse row, which is exactly what is wanted.
+  return cells === undefined || cells.every((cell) => cell.trim() === "");
 }
 
 /**
@@ -121,11 +123,15 @@ export function isBlankRow(cells: string[]): boolean {
  * non-blank row is used (and F005 follows). -1 when every row is blank.
  * See docs/DECISIONS.md, 2026-10-06.
  */
-export function findHeaderRow(rows: string[][], columnMap: ColumnMap): number {
+export function findHeaderRow(
+  rows: readonly (readonly string[] | undefined)[],
+  columnMap: ColumnMap,
+): number {
   const firstNonBlank = rows.findIndex((cells) => !isBlankRow(cells));
   if (firstNonBlank === -1) return -1;
   const firstMapping = rows.findIndex(
     (cells) =>
+      cells !== undefined &&
       !isBlankRow(cells) &&
       cells.some(
         (cell) => cell.trim() !== "" && lookupHeader(cell, columnMap) !== null,
@@ -134,50 +140,93 @@ export function findHeaderRow(rows: string[][], columnMap: ColumnMap): number {
   return firstMapping === -1 ? firstNonBlank : firstMapping;
 }
 
+/** Most unrecognised or headerless columns that are reported one by one. */
+export const MAX_COLUMN_WARNINGS = 50;
+
+/**
+ * Collects the W201 warnings for columns that are ignored. The first
+ * MAX_COLUMN_WARNINGS get a warning each, as the spec says; after that one extra
+ * warning counts the rest. Without a limit, a single very wide row would produce
+ * millions of warnings (docs/DECISIONS.md, M6 review).
+ */
+export class ColumnWarnings {
+  private readonly issues: Issue[] = [];
+  private skipped = 0;
+
+  /** Records a warning; returns false when it was only counted. `make` runs only when it is kept. */
+  add(make: () => Issue): boolean {
+    if (this.issues.length < MAX_COLUMN_WARNINGS) {
+      this.issues.push(make());
+      return true;
+    }
+    this.skipped++;
+    return false;
+  }
+
+  /** The kept warnings, plus one summary warning when some were only counted. */
+  finish(headerRowNumber: number): Issue[] {
+    if (this.skipped === 0) return this.issues;
+    return [
+      ...this.issues,
+      makeIssue(
+        "W201",
+        `${this.skipped} more column${this.skipped === 1 ? " is" : "s are"} ignored (not recognised, or without a header).`,
+        { row: headerRowNumber },
+      ),
+    ];
+  }
+}
+
 export type HeaderMapping = {
   columns: Column[];
   /** Field → index of its column in each row. */
   fieldIndex: Map<CanonicalField, number>;
   /** Columns whose header cell is blank; the caller warns if they hold data. */
   blankHeaderIndexes: number[];
+  /** File-level errors (F005, F006) only. */
   issues: Issue[];
+  /** W201 warnings for ignored columns; the caller adds more and then calls finish(). */
+  warnings: ColumnWarnings;
 };
 
 export function mapHeaders(
   headerCells: string[],
   columnMap: ColumnMap,
   headerRowNumber: number,
+  warnings: ColumnWarnings = new ColumnWarnings(),
 ): HeaderMapping {
   const columns: Column[] = [];
   const fieldIndex = new Map<CanonicalField, number>();
   const issues: Issue[] = [];
   const blankHeaderIndexes: number[] = [];
 
-  headerCells.forEach((header, index) => {
+  // A for loop, not forEach: a header row from Excel is sparse (cells never written are
+  // holes), and a hole is a blank header just like an empty cell, so it must be visited.
+  for (let index = 0; index < headerCells.length; index++) {
+    const header = headerCells[index] ?? "";
     if (header.trim() === "") {
       blankHeaderIndexes.push(index);
-      return;
+      continue;
     }
     const field = lookupHeader(header, columnMap);
-    columns.push({ header, field });
 
     // A column the caller mapped to null is ignored on purpose, so no warning.
     const ignoredOnPurpose =
       columnMap !== undefined && Object.hasOwn(columnMap, header);
-    if (field === null && ignoredOnPurpose) return;
-    if (field === null) {
-      issues.push(
+    if (field === null && !ignoredOnPurpose) {
+      const reported = warnings.add(() =>
         makeIssue(
           "W201",
           `Column "${header}" was not recognised and is ignored. Rename it or map it if it matters.`,
-          {
-            row: headerRowNumber,
-            value: header,
-          },
+          { row: headerRowNumber, value: header },
         ),
       );
-      return;
+      // Past the limit the column is only counted, so the column list stays small too.
+      if (reported) columns.push({ header, field });
+      continue;
     }
+    columns.push({ header, field });
+    if (field === null) continue;
     const existing = fieldIndex.get(field);
     if (existing !== undefined) {
       issues.push(
@@ -187,10 +236,10 @@ export function mapHeaders(
           { row: headerRowNumber, field, value: header },
         ),
       );
-      return;
+      continue;
     }
     fieldIndex.set(field, index);
-  });
+  }
 
   const hasName = fieldIndex.has("lastName") || fieldIndex.has("fullName");
   const missing: string[] = [];
@@ -210,5 +259,5 @@ export function mapHeaders(
     );
   }
 
-  return { columns, fieldIndex, blankHeaderIndexes, issues };
+  return { columns, fieldIndex, blankHeaderIndexes, issues, warnings };
 }

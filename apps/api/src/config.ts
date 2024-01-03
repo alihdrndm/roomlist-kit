@@ -8,6 +8,13 @@ const configSchema = z.object({
   API_KEY: z.string().default(""),
   MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(5_242_880),
   MAX_ROWS: z.coerce.number().int().positive().default(5000),
+  // How many reverse proxies sit in front of the API (0 = none). Needed so the
+  // rate limit sees each client's own address and not the load balancer's.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
+  // Chooses readable logs for development and JSON lines for production.
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -23,4 +30,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     process.exit(1);
   }
   return parsed.data;
+}
+
+/** A complete Config for tests and tools: defaults, with any field overridden. */
+export function defaultConfig(overrides: Partial<Config> = {}): Config {
+  return { ...configSchema.parse({}), ...overrides };
 }

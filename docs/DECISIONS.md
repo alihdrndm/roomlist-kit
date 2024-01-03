@@ -272,3 +272,81 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 - **Order of refusals in `convert`:** list errors (exit 1) are checked before the export options (exit 2), because core validates options inside `exportRoomingList`. A list with errors and bad `--options` therefore exits 1.
 - **`--options null`** is treated as "no options" (core's `options ?? {}`).
 - **`@alihdrndm/source` points at `src/`**, which `"files": ["dist"]` would not publish. Harmless: other consumers do not know the condition, and publishing is out of scope.
+
+## 2026-10-06 (M6)
+
+### New environment variables: `TRUST_PROXY` (owner decision) and `NODE_ENV`
+- **Spec said:** extra environment variables are `MAX_UPLOAD_BYTES` and `MAX_ROWS` only.
+- **Did:** `TRUST_PROXY` (number of reverse proxies, default 0) so the rate limit sees each client's own address behind a load balancer (chosen by the repo owner; compose and SST set it to 1 in M8), and `NODE_ENV` (`development | production | test`, default `development`) to choose readable or JSON logs without reading `process.env` outside `config.ts`.
+- **Why:** without `TRUST_PROXY`, every user of a deployed API would share one 120-per-minute bucket (the load balancer's address).
+
+### Workspace typecheck and tests use core's source
+- **Did:** `apps/api` follows the M5 pattern: `customConditions: ["@alihdrndm/source"]` in `tsconfig.json`, reset in `tsconfig.build.json`; both Vitest configs alias `@alihdrndm/roomlist-core` to `packages/core/src/index.ts`.
+- **Why:** `pnpm test` and `pnpm test:e2e` run before `pnpm build`, so core's `dist/` does not exist yet on a fresh clone.
+
+### `vite-tsconfig-paths` removed
+- **Did:** both Vitest configs use `resolve.tsconfigPaths: true`; the plugin is removed from `devDependencies`.
+- **Why:** Vite supports it natively and warned on every run (M2 and M3 reviewers noted it).
+
+### Multipart envelope
+- **Did:** `block`, `options`, `target`, `targetOptions` are plain text parts; the schemas in `apps/api/src/schemas.ts` parse the JSON text and validate it in one step with core's `BlockContextSchema` and `ParseOptionsSchema`, so a bad part is a normal `VALIDATION_FAILED` under its own name. A JSON part sent as a file upload (curl `-F block=@file`) is a 422 "Unexpected field" with a hint, because the spec says JSON parts are text.
+- `options` is `ParseOptionsSchema` without `maxRows`; `maxRows` always comes from `MAX_ROWS`.
+- Zod issue `code` values (`invalid_type`, `unrecognized_keys`, `custom`, ...) are used for `errors[].code`; the Nest Standard Schema pipe passes Zod's issues through, so the code is read from them at runtime.
+
+### Error mapping details
+- **FILE_REQUIRED** is raised by an interceptor that runs after the upload interceptor and before body validation, so a missing file is always 400 and is never hidden behind a 422.
+- **Any other 4xx from the framework** (malformed multipart, unexpected field) is `VALIDATION_FAILED` (422) with the framework's message in `detail`.
+- **API key:** both sides are SHA-256 hashed before `timingSafeEqual`, because `timingSafeEqual` throws on different lengths and a length pre-check would leak the key's length. The same message is returned for a missing and a wrong key.
+- **Throttler:** a global guard; the health endpoints are exempt (`@SkipThrottle`) because probes are frequent. The limit is a constant 120 per 60 s; only the test hook can change it.
+- **Request id:** a caller's `x-request-id` is kept only if it is 1 to 128 characters of `A-Za-z0-9._-`; otherwise a UUID v7 replaces it.
+- **Logging:** the access log serializer writes only id, method, path (no query string), user agent and status code; headers and bodies are never logged.
+- **Uploads:** multer's default is memory storage when neither `dest` nor `storage` is set, so nothing is written to disk; `limits.fileSize = MAX_UPLOAD_BYTES`.
+
+### Swagger: schemas come from Zod, and the multipart body uses `standardSchema`
+- **Spec said:** use `@nestjs/swagger`'s Standard Schema integration if the installed version has one; otherwise `z.toJSONSchema()` with `@ApiBody` / `@ApiResponse`. No hand-written duplicate schemas.
+- **Did:** `@nestjs/swagger` 12.0.2 has the integration. `@Body({ schema })` makes it document the Zod envelope as the request body, which hides the file parts (`file`, `before`, `after`). So each `@ApiBody` passes a multipart Zod schema (file parts plus the text parts) as `standardSchema`. `@nestjs/swagger` reads that key at runtime (it is how `@Body({ schema })` is documented), but the `ApiBody` typings do not list it, so `multipartBody()` in `apps/api/src/openapi.ts` has one commented type assertion.
+- **Guard:** `docs.e2e.test.ts` asserts the documented parts, so an upgrade that changes this behaviour fails a test.
+- **Components:** `BlockContext`, `ParseOptions`, `Problem`, `ValidateReport`, `DiffReport` and `TargetsResponse` are registered under `#/components/schemas` from Zod via `z.toJSONSchema(..., { target: "openapi-3.0" })`; the part descriptions point at them.
+- Each endpoint documents one 422 entry whose text lists every code that can come back with that status (an OpenAPI response is keyed by status, not by `code`).
+- **Helmet and `/docs`:** helmet runs with its defaults on every route. Swagger UI works under the default Content-Security-Policy (its HTML has no inline script; a test asserts this and that an asset URL from the page returns 200).
+
+### Biome `useImportType` is off for `apps/api/src`
+- **Did:** an override in `biome.json` turns `style/useImportType` off for `apps/api/src/**`.
+- **Why:** Biome's autofix rewrote `import { RoomingListsService }` in the controller to `import type`, which erases the class that Nest reads from the constructor parameter type at runtime (`emitDecoratorMetadata`) and breaks dependency injection. This is a known conflict between that rule and Nest.
+
+### Tests: log capture needs one app per file
+- `nestjs-pino` keeps a single logger per process (production runs one app), so only the first app started in a test file writes to its own capture stream. Tests that read logs live in files that start exactly one app (`logging.e2e.test.ts`, `auth.e2e.test.ts`, `auth-open.e2e.test.ts`); the note is on `startApp` in `apps/api/test/helpers.ts`.
+
+### M6 found and fixed a bug in core (M1 code)
+- **Bug:** `parseRoomingList` computed the widest row with `Math.max(headerWidth, ...dataRows.map(...))`. Spreading one argument per row overflows the call stack on a large file: a 5 MB CSV of short rows (over 200,000 rows) made the API answer 500 instead of reporting F007 (too many rows). Found by the API e2e test "a file of exactly MAX_UPLOAD_BYTES passes the size limit".
+- **Fix:** a plain loop, plus a regression test in core (`parse.test.ts`). The worst case, a 5 MB file over the row limit, parses in about 0.8 s.
+- **Lesson recorded:** no spread of row-count-sized arrays into function arguments.
+
+### M6 review: hostile and oversized input (owner decisions)
+Two review blockers were unbounded work from one 5 MB upload. Both fixes are in core (M1 code) and were chosen by the repo owner.
+- **Excel files read only what exists.** `readXlsxRows` visits existing rows and cells (`eachRow` / `eachCell`) and keeps the result sparse, instead of looping over rowCount × columnCount of the sheet's used range. A 6 KB workbook with one cell at row 10,000 and one at column 1,000 used to keep the server busy for over five minutes (and `/healthz` stopped answering); it now parses in about a second. Rows are a sparse list (`undefined` for unused rows), which `parse.ts` and `headers.ts` handle.
+- **Zip directory check.** Before unpacking, `checkZipSizes` (`parse/zip-guard.ts`, no Node APIs) reads the zip directory and refuses a workbook that declares more than 100 MB unpacked or more than 500 parts, or uses zip64 sizes, as the existing `F003 UNSUPPORTED_FORMAT` ("The workbook is too large when unpacked"). **Residual risk, written down:** a deliberately forged zip can lie about its sizes, and an honest but very large workbook still costs a lot (see "Open after the M6 reviews" below). The 5 MB upload limit alone is not a sufficient backstop: the measurements showed 0.5 GB is where the task dies, not a protection.
+- **W201 is capped at 50 per file.** The first 50 unrecognised or headerless columns each get their W201 as the spec says; after that one extra W201 says "N more columns were not recognised and are ignored". Unknown header columns beyond 50 are also left out of `columns`. Files with 50 columns or fewer behave exactly as before (including blank headers over data in xlsx files, which the first sparse reader briefly lost and a test now guards). Before the cap, one very wide row produced 2.5 million warnings and a 414 MB response. Headerless-column detection is now one pass over the cells that exist (it was a scan of every row per column).
+
+### M6 review: other fixes and records
+- **Errors raised before Nest's router** (a malformed URL, a body-parser error) were answered by Express itself (an HTML 500, no log line), because a filter registered with `APP_FILTER` does not reach that layer. `createApp` now installs the same `ProblemFilter` instance with `useGlobalFilters`. A malformed URL is a 422 `VALIDATION_FAILED` problem+json, and its access-log line is written by the filter when pino-http never ran.
+- **Body parsers are off** (`bodyParser: false`): every endpoint takes multipart, which multer reads, so a JSON body of any size or shape is never parsed and ends as `FILE_REQUIRED`.
+- **Error logs withhold the message.** An unexpected error is logged with its class name and the first stack frames, never its message (a library message can contain cell text, which logs must not hold).
+- **`errors[]` for unknown parts:** one Zod `unrecognized_keys` issue becomes one `errors[]` entry per unknown key (the spec says one entry per Zod issue). Chosen because each entry then has its own `path` that a form can highlight.
+- **`errors[].path`** for a root-level `targetOptions` problem is `targetOptions` (no trailing dot).
+- **OpenAPI parts are derived from the real body schemas** (`ValidateBodySchema.extend({ file })` and so on), the convert media types come from `listTargets()` (charset included), and the health body is a Zod schema; nothing is typed out by hand any more.
+- **Dependencies (OP7):** `pino` and `pino-http` are runtime dependencies because they are peer dependencies of `nestjs-pino`, which the spec names.
+- **Upload limits:** multer is configured with `files: 2`, `fields: 10`, `fieldSize: 64 KiB` next to `fileSize: MAX_UPLOAD_BYTES`; the text parts (`block`, `options`, `target`, `targetOptions`) are small JSON.
+- **`pino-pretty` is optional:** development logging uses it only if it is installed (it is a dev dependency); a production image built with `pnpm deploy --prod` that leaves `NODE_ENV` unset logs JSON instead of failing to start.
+- **Happy path for diff with WE1** (diffing the worked example against itself) was added next to the `list-v1`/`list-v2` test; the convert happy-path tests carry "WE1" in their names.
+- **Carry-forward for M8:** Helmet's default Content-Security-Policy includes `upgrade-insecure-requests`; Swagger UI served through a plain-HTTP load balancer may not load its assets in a browser. `/docs` is proved at HTTP level only (HTML and every asset return 200); no browser was used. Check it once behind the real load balancer, or terminate TLS there.
+
+### Open after the M6 reviews (reported to the owner, not decided)
+The second review run still found two unbounded-cost cases. The milestone rules stop at two reviewer runs, so they are recorded here for the owner:
+1. **Short CSV rows are slow inside `csv-parse`.** With `relax_column_count`, a row shorter than the header costs about 0.13 ms (a normal row about 1.5 µs). It is linear but heavy: a 5 MB CSV of one-cell rows (2.6 million lines) blocks the event loop for minutes, and the 120-per-minute limit does not prevent it. The library has no option that avoids it. F007 is only checked after the whole file is parsed.
+2. **Honest but very large workbooks.** A 5 MB `.xlsx` of 1,048,575 one-cell rows (about 42 MB unpacked, under every guard limit) took 8.4 s and 1.66 GB in core, and blocked `/healthz` for about 10 s through the API; a dense 109 × 16,384 sheet took 0.9 GB. The infrastructure spec gives one task 0.5 GB, so one such upload could get it killed. A forged zip (declared 1 KB, really 2.5 GB) is the case already accepted above.
+
+### M6 review notes recorded
+- `biome.json` turns `style/useImportType` and `complexity/noStaticOnlyClass` off for `apps/api/src/**`: the first so injected classes stay value imports (see above), the second because Nest dynamic modules (`AppModule.register`, `ConfigModule.forRoot`) are static-only classes by design.
+- The overflow W201 reads "N more columns are ignored (not recognised, or without a header)", because the counted columns can be unrecognised headers or headerless data columns.
+- `docs/ERRORS.md` (INTERNAL) now says the log holds the error class and location, not its message.

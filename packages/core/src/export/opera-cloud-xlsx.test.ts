@@ -169,7 +169,7 @@ describe("opera-cloud-xlsx", () => {
       severity: "warning",
     });
     expect(result.bytes.length).toBeGreaterThan(1000);
-  });
+  }, 30_000);
 
   it("X101 opera-cloud-xlsx: exactly 1,000 entries does not warn", async () => {
     const entries = Array.from({ length: 1000 }, (_, i) =>

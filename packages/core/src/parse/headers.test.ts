@@ -88,8 +88,10 @@ describe("mapHeaders", () => {
       undefined,
       3,
     );
-    expect(result.issues).toHaveLength(1);
-    expect(result.issues[0]).toMatchObject({
+    expect(result.issues).toEqual([]);
+    const warnings = result.warnings.finish(3);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatchObject({
       ruleId: "W201",
       row: 3,
       value: "VIP Code",
