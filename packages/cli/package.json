@@ -8,8 +8,6 @@
   "engines": {
     "node": ">=24 <25"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "bin": {
     "roomlist": "./dist/index.js"
   },
@@ -19,11 +17,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --coverage"
+    "test": "pnpm --filter @alihdrndm/roomlist-core build && tsc -p tsconfig.build.json && vitest run --coverage"
   },
   "devDependencies": {
+    "@types/node": "^24.19.1",
     "@vitest/coverage-v8": "^5.0.3",
+    "execa": "^10.0.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@alihdrndm/roomlist-core": "workspace:*",
+    "commander": "^15.0.0"
   }
 }
