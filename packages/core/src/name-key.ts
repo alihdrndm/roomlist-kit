@@ -1,7 +1,7 @@
 /**
  * Folds a name so accents, case and punctuation don't hide a match:
  * "Müller-Lüdenscheidt" and "MULLER-LUDENSCHEIDT" both give "mullerludenscheidt".
- * Steps follow HANDOFF.md: NFKD, drop combining marks, lower-case, keep only
+ * Steps follow the project spec: NFKD, drop combining marks, lower-case, keep only
  * letters/digits/spaces (so a hyphen disappears rather than becoming a space),
  * collapse spaces.
  */

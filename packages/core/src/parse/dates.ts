@@ -42,7 +42,7 @@ function monthNumber(name: string): number | undefined {
   return index === -1 ? undefined : index + 1;
 }
 
-/** Parses one date cell. Anything not in the HANDOFF.md date table (2-digit years, Feb 30, …) is `ok: false`. */
+/** Parses one date cell. Anything not in the spec's date table (2-digit years, Feb 30, …) is `ok: false`. */
 export function parseDateText(raw: string, order: DateOrder): DateParse {
   const text = raw.trim();
 

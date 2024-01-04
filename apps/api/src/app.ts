@@ -8,7 +8,7 @@ import { ProblemFilter } from "./problem.filter.js";
 import { requestIdMiddleware } from "./request-id.js";
 import { setupSwagger } from "./swagger.js";
 
-/** The message HANDOFF.md requires when no API key is configured. */
+/** The message the project spec requires when no API key is configured. */
 export const NO_API_KEY_WARNING =
   "API_KEY not set: authentication disabled (development only)";
 

@@ -177,7 +177,7 @@ describe("formatTargets", () => {
   });
 });
 
-describe("colour rule (HANDOFF.md: no colour when NO_COLOR is set or stdout is not a TTY)", () => {
+describe("colour rule (spec: no colour when NO_COLOR is set or stdout is not a TTY)", () => {
   it("colour only on a TTY with NO_COLOR unset", () => {
     expect(shouldUseColor({}, true)).toBe(true);
   });

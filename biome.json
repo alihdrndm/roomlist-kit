@@ -12,7 +12,6 @@
       "!**/blob-report",
       "!**/playwright-report",
       "!pnpm-lock.yaml",
-      "!HANDOFF.md",
       "!fixtures",
       "!.claude",
       "!apps/web/next-env.d.ts"

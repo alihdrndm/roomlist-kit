@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Light theme only (HANDOFF.md, Web conventions). The system font stack needs no
+/* Light theme only (project spec, web conventions). The system font stack needs no
    download, so `next build` works without network access. */
 body {
   font-family:

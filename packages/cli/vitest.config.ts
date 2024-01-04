@@ -9,7 +9,7 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts"],
-      // No thresholds: HANDOFF.md sets them for packages/core only, and code that
+      // No thresholds: the project spec sets them for packages/core only, and code that
       // runs inside the spawned binary is not measured by in-process coverage.
     },
   },
