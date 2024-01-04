@@ -24,6 +24,6 @@ How the project handles it:
 - **Never logged.** Logs hold only the request id, method, path (without the query string), status, and user agent. Request and response bodies and file contents are never logged. An API test checks that a guest name does not appear in the logs.
 - **API key.** The API compares the `x-api-key` header with the configured key using SHA-256 hashes and `crypto.timingSafeEqual`. The web app keeps the key on its server side; it is never sent to the browser.
 - **Upload limits.** 5 MB per file and 5000 rows, and the XLSX and CSV readers are bounded so a crafted file cannot use unlimited memory.
-- **Rate limit.** 120 requests per minute per IP address.
+- **Rate limit.** 120 requests per minute per client address. After an AWS deployment, requests that come through the web app are counted per web server address, so web users share that limit (see `docs/DEPLOY.md`).
 
 All sample data in this repository is synthetic.

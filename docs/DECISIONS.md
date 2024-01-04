@@ -368,7 +368,7 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 
 ### `x-forwarded-for` is passed through unchanged (carry-forward for M8)
 - **Did:** the proxy forwards the incoming `x-forwarded-for` as it is and does not add the web server's own address. The API (with `TRUST_PROXY`) decides which entry to trust.
-- **M8 (open):** the spec deploys the web with `sst.aws.Nextjs` (CloudFront + Lambda), so calls from the web reach the API's load balancer from the Lambda's egress address. The load balancer then appends that address, and with `TRUST_PROXY=1` the API would key every web user on the Lambda's address. Whoever builds M8 must decide how the API learns the client of a web request (for example: the API trusts one more hop only when the request carries the valid API key, which only the web holds), and test that the trusted entry is the one CloudFront wrote. In local compose, where the web port is reachable directly, a client can set `x-forwarded-for` itself; keep `TRUST_PROXY=0` there.
+- **M8 (resolved):** the owner accepted shared rate-limit buckets for web users after deployment; see M8, "Rate limits for web users after deployment". In local compose, where the web port is reachable directly, a client can set `x-forwarded-for` itself, so compose keeps `TRUST_PROXY=0`.
 
 ### System fonts instead of `next/font/google`
 - **Did:** the M0 scaffold's Google font is replaced by the system font stack.
@@ -412,7 +412,7 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 
 ### Rate limits for web users after deployment (owner decision)
 - **Did:** SST sets `TRUST_PROXY=1` (the load balancer is the one proxy in front of the container). Direct API callers are counted by their own address. Requests from the web app arrive from its Lambda functions' addresses, so web users share those rate-limit buckets.
-- **Why:** chosen by the owner over a trusted client-IP header: no extra code, and easy to explain. Listed in the README roadmap as "per-user rate limits for web traffic". Compose keeps `TRUST_PROXY=0`.
+- **Why:** chosen by the owner over a trusted client-IP header: no extra code, and easy to explain. Documented in `docs/DEPLOY.md` ("Known limits") and `SECURITY.md`; the README roadmap stays exactly the list from HANDOFF.md. Compose keeps `TRUST_PROXY=0`.
 
 ### Seed data (owner decision)
 - **Spec said:** `docker compose up --build` must bring up a working stack "with seed data". **Did:** nothing extra is seeded. The project has no database or backing service; the sample list and block ship in the web image (`apps/web/public/samples`, behind "Load sample"), and the README examples use `fixtures/`.
@@ -440,7 +440,17 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 - The README "Try it" CLI examples run `node packages/cli/dist/index.js` after `pnpm build`. `pnpm --filter … exec roomlist` would run inside `packages/cli`, where the `fixtures/` paths do not resolve.
 
 ### Definition of done, item 4 (the marker-word grep)
-- The grep in item 4 (for the three unfinished-work marker words) matches two lines outside `HANDOFF.md`, both intended:
+- The grep in item 4 (for the three unfinished-work marker words) matches these files outside `HANDOFF.md`. All are intended or generated, none is a note left in our code:
   - `.claude/agents/milestone-reviewer.md`: HANDOFF.md fixes this file word for word, and it tells the reviewer to check that those markers are absent.
   - `pnpm-lock.yaml`: the sha512 integrity hash of `safer-buffer@2.1.2` happens to contain three capital X letters in a row. It is a checksum, not a note.
-- Build output (`.next`, `dist`) can also match on a machine that has built the project; a fresh clone has none. This entry avoids writing the marker words itself, so it does not add a match.
+  - `.sst/platform/**`: SST's own generated sources, written by `sst install` during `pnpm typecheck` (gitignored).
+  - `.git/hooks/*.sample`: example hooks that git writes into every clone.
+  - Build output (`.next`, `dist`) after `pnpm verify` (gitignored).
+- `git grep` over the committed files matches only the first two. This entry avoids writing the marker words itself, so it adds no match.
+
+### M8 review notes recorded
+- **CLI reads `NO_COLOR`.** `packages/cli/src/format.ts` reads `process.env` (as a default argument) to honour the `NO_COLOR` convention. The spec's rule names the two apps' config files; the CLI is a third program, and colour is its only environment setting. Recorded as a deviation (since M5), not moved: a separate CLI env module would read `process.env` all the same.
+- **Compose publishes on `127.0.0.1` only**, because the API key in `compose.yaml` and the README is a public placeholder.
+- `.gitignore` and `.dockerignore` also cover `.env.*` (Next.js loads `.env.local` and friends), keeping `.env.example`.
+- **DEPLOY.md** now lists the Cloud Map namespace and its Route 53 private hosted zone (created by every `sst.aws.Vpc`, billed monthly), says secrets are stored encrypted in S3 (not SSM), and notes that the key is a plain environment variable in the task definition and the Lambda configuration.
+- **Order:** the M8 commit (`da74cf0`) was made before the reviewer ran; these fixes go in a follow-up commit.

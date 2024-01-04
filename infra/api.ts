@@ -5,7 +5,8 @@
 /** The key the web app sends and the API checks. Set it with `pnpm sst secret set ApiKey <value>`. */
 export const apiKey = new sst.Secret("ApiKey");
 
-// NAT is off (the SST default): the service needs no outbound internet access.
+// NAT is off (the SST default), so there is no NAT gateway to pay for. SST runs the
+// task in a public subnet with a public IP instead; that is how it pulls its image.
 const vpc = new sst.aws.Vpc("Vpc");
 const cluster = new sst.aws.Cluster("Cluster", { vpc });
 

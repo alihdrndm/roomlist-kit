@@ -34,18 +34,20 @@ Defined in `infra/api.ts` and `infra/web.ts`, region `us-east-1`.
 | Resource | Created by | Bills continuously? |
 |----------|-----------|---------------------|
 | VPC with a public and a private subnet in each of two availability zones, an internet gateway, route tables, a default security group | `sst.aws.Vpc("Vpc")` | No (no NAT gateway: NAT is off by default) |
+| AWS Cloud Map private DNS namespace named `sst`, backed by a Route 53 private hosted zone | `sst.aws.Vpc("Vpc")` (always created) | **Yes**: the hosted zone is billed monthly while it exists |
 | ECS cluster | `sst.aws.Cluster("Cluster")` | No |
+| Cloud Map service for the API (service discovery inside the VPC) | `sst.aws.Service("Api")` | Per registered instance and query |
 | Application Load Balancer, HTTP listener on port 80, target group with a health check on `/healthz` | `sst.aws.Service("Api")` | **Yes**, per hour, plus load balancer capacity units |
 | One Fargate task (0.25 vCPU, 0.5 GB), its task definition, IAM roles, security groups | `sst.aws.Service("Api")` | **Yes**, per second while running |
 | Container image in Amazon ECR | `sst.aws.Service("Api")` | Storage only |
 | CloudWatch log group for the API | `sst.aws.Service("Api")` | Storage and ingestion only |
 | Public IPv4 addresses (the load balancer's, and one per running container: the SST Service docs say each container gets one) | VPC and service | **Yes**, per address per hour |
-| SSM parameter holding the `ApiKey` secret | `sst.Secret("ApiKey")` | No (standard parameters) |
+| The `ApiKey` secret, encrypted and stored in an S3 bucket in your account (SST's secret storage) | `sst.Secret("ApiKey")` | Storage only |
 | CloudFront distribution, S3 bucket for static assets, Lambda functions for server rendering and image optimisation, plus the queue and table OpenNext uses for revalidation | `sst.aws.Nextjs("Web")` | No: billed per request and per GB stored |
 
 SST also keeps its own state in your account (an S3 bucket and SSM parameters created on first deploy); see https://sst.dev/docs/state.
 
-There is no database and no NAT gateway.
+There is no database and no NAT gateway. Billing continuously while the stage exists: the load balancer, the Fargate task, the public IPv4 addresses and the Route 53 hosted zone. Everything else is billed by use or storage.
 
 ## Pricing pages
 
@@ -59,10 +61,13 @@ There is no database and no NAT gateway.
 - S3: https://aws.amazon.com/s3/pricing/
 - SQS: https://aws.amazon.com/sqs/pricing/
 - DynamoDB: https://aws.amazon.com/dynamodb/pricing/
-- Systems Manager Parameter Store: https://aws.amazon.com/systems-manager/pricing/
+- Route 53 (private hosted zones): https://aws.amazon.com/route53/pricing/
+- Cloud Map: https://aws.amazon.com/cloud-map/pricing/
+- Systems Manager Parameter Store (SST's own state passphrase): https://aws.amazon.com/systems-manager/pricing/
 
 ## Known limits (see docs/DECISIONS.md, M8)
 
 - **Next.js 16 on OpenNext is unverified.** The SST docs list OpenNext 3.9.14 for Next.js 15 and later and do not mention 16. If the web deploy fails at the OpenNext build step, check the SST and OpenNext release notes for Next.js 16 support.
 - **Rate limits for web users are shared.** The API counts requests per client address behind the load balancer (`TRUST_PROXY=1`). Requests from the web app come from its Lambda functions' addresses, so web users share those limits.
+- **Where the key ends up.** The API key is passed as an environment variable, so it is visible in plain text in the ECS task definition and the Lambda configuration to anyone with read access to those in your account.
 - **Plain HTTP.** Without a domain the load balancer serves HTTP only. CloudFront serves the web app over HTTPS, but the web-to-API hop is HTTP. Add a domain (the `loadBalancer.domain` option) before using real guest data.
