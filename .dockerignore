@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+.sst
+coverage
+**/coverage
+test-results
+playwright-report
+blob-report
+.git
+.claude
+*.tsbuildinfo
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
+# Never bake local secrets into an image layer.
+.env

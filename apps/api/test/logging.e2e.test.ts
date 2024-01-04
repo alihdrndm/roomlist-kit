@@ -125,4 +125,11 @@ describe("logging and request ids", () => {
     expect(res.headers["x-powered-by"]).toBeUndefined();
     expect(res.headers["access-control-allow-origin"]).toBeUndefined();
   });
+
+  it("security headers: the CSP has no upgrade-insecure-requests (the load balancer is plain HTTP)", async () => {
+    const res = await request(api.app.getHttpServer()).get("/healthz");
+    const csp = String(res.headers["content-security-policy"]);
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).not.toContain("upgrade-insecure-requests");
+  });
 });
