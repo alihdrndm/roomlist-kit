@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>roomlist-kit social preview</title>
+<!-- Source of docs/media/social-preview.png (1280×640, GitHub's social preview size).
+     Re-render with: node tools/render-social-preview.mjs -->
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1280px; height: 640px; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    background: #f8fafc; color: #0f172a;
+    display: grid; grid-template-columns: 1fr 470px; gap: 48px;
+    padding: 72px 80px;
+  }
+  .eyebrow { font-size: 22px; font-weight: 600; color: #1e40af; letter-spacing: .02em; }
+  h1 { font-size: 64px; line-height: 1.05; font-weight: 800; margin-top: 18px; letter-spacing: -.02em; }
+  .sub { font-size: 26px; color: #334155; margin-top: 24px; line-height: 1.35; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+  .chip { font-size: 20px; font-weight: 600; padding: 8px 16px; border-radius: 999px;
+          background: #e0e7ff; color: #1e3a8a; }
+  .foot { position: absolute; left: 80px; bottom: 48px; font-size: 20px; color: #475569; }
+  .foot b { color: #0f172a; }
+  .card { align-self: center; background: #fff; border: 2px solid #cbd5e1; border-radius: 20px;
+          padding: 28px; box-shadow: 0 20px 40px -24px rgba(15, 23, 42, .35); }
+  .card h2 { font-size: 18px; color: #475569; font-weight: 600; margin-bottom: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tile { border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; }
+  .tile span { display: block; font-size: 14px; color: #475569; }
+  .tile strong { font-size: 32px; }
+  .ok { border-color: #15803d; }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 18px; }
+  .arrow { color: #1e40af; font-weight: 700; }
+  .file { font-family: Consolas, "SF Mono", monospace; font-size: 16px; background: #f1f5f9;
+          border-radius: 8px; padding: 6px 10px; }
+  .check { color: #15803d; font-weight: 700; }
+</style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">roomlist-kit</p>
+    <h1>Rooming list in.<br>Hotel-ready import file out.</h1>
+    <p class="sub">Validate a CSV or Excel rooming list against the room block, then convert it for the hotel's PMS.</p>
+    <div class="chips">
+      <span class="chip">Oracle OPERA 5</span>
+      <span class="chip">OPERA Cloud</span>
+      <span class="chip">Maestro PMS</span>
+    </div>
+  </main>
+  <section class="card" aria-label="Example result">
+    <h2>we1.csv · TECH26 block</h2>
+    <div class="tiles">
+      <div class="tile"><span>Guests</span><strong>4</strong></div>
+      <div class="tile"><span>Rooms</span><strong>3</strong></div>
+      <div class="tile"><span>Room nights</span><strong>9</strong></div>
+      <div class="tile ok"><span>Errors</span><strong>0</strong></div>
+      <div class="tile ok"><span>Warnings</span><strong>0</strong></div>
+      <div class="tile"><span>Rules</span><strong>31</strong></div>
+    </div>
+    <div class="row"><span class="check">✔</span> Valid <span class="arrow">→</span> <span class="file">rooming-list-maestro.csv</span></div>
+  </section>
+  <p class="foot"><b>Open source</b> · TypeScript library, CLI, REST API and web app · github.com/alihdrndm/roomlist-kit</p>
+</body>
+</html>
