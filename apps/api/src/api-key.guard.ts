@@ -16,6 +16,11 @@ export const API_KEY_HEADER = "x-api-key";
  * Compares two strings in constant time. Hashing both first makes the buffers the
  * same length, which timingSafeEqual requires (it throws otherwise, and a
  * length check before it would leak how long the real key is).
+ *
+ * This is not password storage, so a slow password hash (bcrypt, scrypt) would add
+ * nothing: the digests live for one comparison and are never stored or logged.
+ * CodeQL's js/insufficient-password-hash alert on these lines was dismissed as a
+ * false positive for that reason.
  */
 export function keysMatch(provided: string, expected: string): boolean {
   const a = createHash("sha256").update(provided).digest();
