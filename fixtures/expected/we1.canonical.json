@@ -1,0 +1,112 @@
+{
+  "block": {
+    "propertyCode": "DEMO",
+    "blockCode": "TECH26",
+    "groupReservationNumber": "48213",
+    "startDate": "2026-11-10",
+    "endDate": "2026-11-14",
+    "shoulderDays": 1,
+    "roomTypes": [
+      "KING",
+      "QQ"
+    ],
+    "maxOccupancy": {
+      "KING": 3,
+      "QQ": 4
+    }
+  },
+  "entries": [
+    {
+      "line": 1,
+      "lastName": "Okafor",
+      "firstName": "Ada",
+      "email": "ada.okafor@example.com",
+      "arrivalDate": "2026-11-10",
+      "departureDate": "2026-11-13",
+      "roomType": "KING",
+      "rooms": 1,
+      "adults": 1,
+      "children": 0,
+      "infants": 0
+    },
+    {
+      "line": 2,
+      "lastName": "Lindqvist",
+      "firstName": "Jonas",
+      "email": "jonas.lindqvist@example.com",
+      "arrivalDate": "2026-11-10",
+      "departureDate": "2026-11-14",
+      "roomType": "QQ",
+      "rooms": 1,
+      "adults": 1,
+      "children": 0,
+      "infants": 0
+    },
+    {
+      "line": 3,
+      "lastName": "Marchetti",
+      "firstName": "Elena",
+      "email": "elena.marchetti@example.com",
+      "arrivalDate": "2026-11-10",
+      "departureDate": "2026-11-14",
+      "roomType": "QQ",
+      "rooms": 1,
+      "adults": 1,
+      "children": 0,
+      "infants": 0,
+      "sharesWithLine": 2
+    },
+    {
+      "line": 4,
+      "lastName": "Tanaka",
+      "firstName": "Hiro",
+      "arrivalDate": "2026-11-11",
+      "departureDate": "2026-11-13",
+      "roomType": "KING",
+      "rooms": 1,
+      "adults": 2,
+      "children": 1,
+      "infants": 0
+    }
+  ],
+  "summary": {
+    "entries": 4,
+    "primaries": 3,
+    "sharers": 1,
+    "rooms": 3,
+    "people": 6,
+    "roomNights": 9,
+    "firstArrival": "2026-11-10",
+    "lastDeparture": "2026-11-14",
+    "byRoomType": [
+      {
+        "roomType": "KING",
+        "rooms": 2,
+        "roomNights": 5
+      },
+      {
+        "roomType": "QQ",
+        "rooms": 1,
+        "roomNights": 4
+      }
+    ],
+    "byNight": [
+      {
+        "date": "2026-11-10",
+        "rooms": 2
+      },
+      {
+        "date": "2026-11-11",
+        "rooms": 3
+      },
+      {
+        "date": "2026-11-12",
+        "rooms": 3
+      },
+      {
+        "date": "2026-11-13",
+        "rooms": 1
+      }
+    ]
+  }
+}

@@ -7,3 +7,9 @@ indent_style = space
 indent_size = 2
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+# Golden files are compared byte for byte; the Maestro one needs CRLF.
+[fixtures/**]
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

@@ -164,3 +164,52 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 - **Did:** both come from every entry with a valid stay, sharers included. If a sharer stays longer than its primary, `byNight` runs to the sharer's departure and those extra nights show 0 rooms.
 - **Why:** the spec defines `byNight` as running from `firstArrival` to `lastDeparture − 1` but does not say whose stays define them; the planner's group dates are everyone's dates. W206 already warns about the mismatched sharer.
 
+
+## 2026-10-06 (M3)
+
+### Every text export ends with one line terminator (owner decision)
+- **Spec said:** Maestro "line ending `\r\n`, no trailing blank line"; nothing about the final line for the other formats.
+- **Did:** each text export ends with exactly one terminator of its own style: Maestro CSV `\r\n`, canonical-csv `\n`, XML `\n`, canonical-json `\n`. There is never an empty line after the last record.
+- **Why:** chosen by the repo owner. It matches "lines end with `\r\n`" in the worked example literally.
+
+### `exportRoomingList` is async
+- **Spec said:** `exportRoomingList(...): ExportResult`.
+- **Did:** returns `Promise<ExportResult>`.
+- **Why:** exceljs writes workbooks asynchronously (same reason as `parseRoomingList`, M1).
+
+### Export refusal order
+- **Did:** (1) unknown target → `UnknownTargetError`; (2) options checked with the target's Zod schema → `ExportOptionsError` (carries the Zod issues; the API maps it to 422 `VALIDATION_FAILED` in M6); (3) `validateRoomingList` errors → `ExportPreconditionError`; (4) each entry narrowed with the strict `RoomingEntrySchema`, a missing required field becomes X001 (this catches a date cell the parser reported as R002 and left empty, which the validator cannot see); (5) the target's own X001 checks.
+- **Why:** the spec says export refuses on validation errors or a failed precondition but does not define errors for bad options or half-parsed entries.
+
+### New rule IDs X001 and X101 in `src/issues.ts`
+- **Did:** X001 `EXPORT_FIELD_REQUIRED` (error), X101 `EXPORT_OVER_RECOMMENDED_LIMIT` (warning) join the shared rule table. Messages say `Line N`: export has no source rows.
+
+### `ExportResult.issues` carries validation warnings too
+- **Did:** warnings from `validateRoomingList` plus X101 are returned in `issues`; errors make the export throw.
+- **Why:** the API header `x-roomlist-warnings` and the CLI's stderr output need the warnings.
+
+### Canonical targets have no provenance entries
+- **Did:** `provenance` is `[]` for `canonical-json` and `canonical-csv`.
+- **Why:** they are this project's own formats; there is no vendor document to verify against.
+
+### XML element names: ASCII subset
+- **Did:** `rootElement` and `recordElement` must match `^[A-Za-z_][A-Za-z0-9._-]*$`.
+- **Why:** the spec says "validated as XML names". The full XML Name production allows many Unicode letters and colons; the ASCII subset keeps out spaces, `<` and namespace prefixes, and covers every realistic envelope name.
+
+### Opera Cloud cells are text-formatted
+- **Did:** every cell, including empty ones, gets Excel's Text number format (`@`) and string values.
+- **Why:** "all cells are written as text" in the spec; it keeps `007` and `11/10/2026` exactly as written.
+
+### Golden files and Biome
+- **Did:** `fixtures/` is excluded from Biome (`biome.json`).
+- **Why:** `pnpm format` reflowed `we1.canonical.json`, which breaks the byte-for-byte golden comparison. Fixtures and golden files must never be rewritten by a formatter.
+- **Also:** `we1.opera5.xml` and `we1.maestro.csv` were written by hand from the spec text; the exporters reproduce them exactly. `we1.canonical.json` and `we1.canonical.csv` were generated once by the exporters and checked by eye. The `.xlsx` target is checked by reading it back (zip bytes are not stable).
+
+### M3 review follow-ups
+- **`emailType` option:** the spec says only "string, default EMAIL". The schema requires at least 1 character (an empty type would break "Email Type is mandatory when an email is given") and sets no maximum.
+- **Maestro quoting:** csv-stringify only quotes a value that contains the whole `\r\n` delimiter, so `quoted_match: /[\r\n]/` quotes values with a lone `\n` or `\r` too. Otherwise one record could be split across two lines.
+- **Test helper not shipped:** `src/export/test-helpers.ts` is excluded from `tsconfig.build.json` (it uses `node:fs`, which core's library code must not).
+- **`.editorconfig` for fixtures:** `[fixtures/**]` unsets line-ending rules so an editor cannot rewrite the CRLF golden file on save (`.gitattributes` protects git; this protects editors).
+- **Known limitation, carried forward:** `exportRoomingList` cannot see parser-level errors whose field was defaulted or dropped (R006, R007 bad cell, R014, R015). The CLI (M5) and API (M6) must also refuse to convert when `ParseResult.issues` contains any error, not only on `ExportPreconditionError`.
+- **Known limitation:** a name containing a C0 control character (for example U+0001) makes the OPERA 5 XML not well-formed XML 1.0. The parser's `cleanName` only collapses whitespace. Not fixed in M3; the spec defines no rule for it.
+- **A1 README text:** the README must tell users to compare the OPERA 5 output with their property's template and set `rootElement` / `recordElement` (M8).

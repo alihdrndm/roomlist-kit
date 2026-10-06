@@ -1,0 +1,5 @@
+line,lastName,firstName,title,email,phone,arrivalDate,departureDate,roomType,rooms,adults,children,infants,sharesWithLine,confirmationNumber,gender,dateOfBirth,nationality,language,passport,specialRequests,travelAgentLocator
+1,Okafor,Ada,,ada.okafor@example.com,,2026-11-10,2026-11-13,KING,1,1,0,0,,,,,,,,,
+2,Lindqvist,Jonas,,jonas.lindqvist@example.com,,2026-11-10,2026-11-14,QQ,1,1,0,0,,,,,,,,,
+3,Marchetti,Elena,,elena.marchetti@example.com,,2026-11-10,2026-11-14,QQ,1,1,0,0,2,,,,,,,,
+4,Tanaka,Hiro,,,,2026-11-11,2026-11-13,KING,1,2,1,0,,,,,,,,,
