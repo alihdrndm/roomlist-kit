@@ -1,0 +1,17 @@
+Line,Last Name,First Name,Arrival,Departure,Room Type,Adults,Children,Shares With,Confirmation,Email
+1,Abara,Nia,2026-11-10,2026-11-13,KING,2,0,,CNF1001,nia.abara@example.com
+2,Brandt,Oskar,2026-11-10,2026-11-14,QQ,2,1,,,oskar.brandt@example.com
+3,Calloway,Mina,2026-11-10,2026-11-14,QQ,1,0,2,,mina.calloway@example.com
+4,Smith,John,2026-11-10,2026-11-12,KING,1,0,,,john.smith@example.com
+5,Delacroix,Remy,2026-11-11,2026-11-13,QQ,2,0,,CNF1002,remy.delacroix@example.com
+6,Eze,Tobias,2026-11-11,2026-11-14,KING,1,0,,,tobias.eze@example.com
+7,Fairbanks,Lena,2026-11-11,2026-11-14,KING,1,0,6,,lena.fairbanks@example.com
+8,Gunnarsson,Pia,2026-11-12,2026-11-14,QQ,2,1,,CNF1007,pia.gunnarsson@example.com
+9,Smith,John,2026-11-12,2026-11-14,QQ,2,0,,,john.smith2@example.com
+10,Hartmann,Ilse,2026-11-12,2026-11-14,KING,1,1,,CNF1003,ilse.hartmann@example.com
+11,Ito,Kenji,2026-11-12,2026-11-14,KING,1,0,10,,kenji.ito@example.com
+12,Jonson,Erik,2026-11-10,2026-11-12,QQ,1,0,,CNF1004,erik.jonson@example.com
+13,Kowalski,Dana,2026-11-13,2026-11-14,KING,1,0,,CNF1008,dana.kowalski@example.com
+14,Lopez,Marco,2026-11-11,2026-11-14,KING,1,0,,CNF1005,marco.lopez@example.com
+15,Mbeki,Zola,2026-11-13,2026-11-14,QQ,1,1,,CNF1006,zola.mbeki@example.com
+16,Novak,Petra,2026-11-10,2026-11-11,QQ,1,0,,,petra.novak@example.com

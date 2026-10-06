@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   BlockContextSchema,
+  diffRoomingLists,
   parseRoomingList,
   validateRoomingList,
 } from "./index.js";
@@ -186,5 +187,51 @@ describe("fixture files", () => {
     for (let n = 1; n <= 15; n++)
       expect(ids).toContain(`R${String(n).padStart(3, "0")}`);
     for (let n = 201; n <= 208; n++) expect(ids).toContain(`W${n}`);
+  });
+
+  describe("diff list-v1 / list-v2", () => {
+    const load = async (name: string) => {
+      const block = BlockContextSchema.parse(readJson("blocks/tech26.json"));
+      const parsed = await parseRoomingList(fixture(name));
+      return { parsed, list: { block, entries: parsed.entries } };
+    };
+
+    it("both lists parse and validate with no errors", async () => {
+      for (const name of ["list-v1.csv", "list-v2.csv"]) {
+        const { parsed, list } = await load(name);
+        const errors = [...parsed.issues, ...validateRoomingList(list)].filter(
+          (issue) => issue.severity === "error",
+        );
+        expect(errors, name).toEqual([]);
+      }
+    });
+
+    it("the diff summary equals fixtures/expected/diff-v1-v2.json", async () => {
+      const v1 = await load("list-v1.csv");
+      const v2 = await load("list-v2.csv");
+      expect(diffRoomingLists(v1.list, v2.list).summary).toEqual(
+        readJson("expected/diff-v1-v2.json"),
+      );
+    });
+
+    it("reports which guests were added, removed and changed, and how", async () => {
+      const report = diffRoomingLists(
+        (await load("list-v1.csv")).list,
+        (await load("list-v2.csv")).list,
+      );
+      expect(report.added.map((entry) => entry.line)).toEqual([17, 18, 19]);
+      expect(report.removed.map((entry) => entry.line)).toEqual([13, 16]);
+      const fields = report.changed.map((pair) => [
+        pair.after.line,
+        pair.changes.map((change) => change.field),
+      ]);
+      expect(fields).toEqual([
+        [5, ["departureDate"]],
+        // The new primary has the same stay and room type, so only the link changes.
+        [7, ["sharesWith"]],
+        [8, ["roomType"]],
+        [9, ["departureDate"]],
+      ]);
+    });
   });
 });

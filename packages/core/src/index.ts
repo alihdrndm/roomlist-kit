@@ -1,5 +1,12 @@
 // Public API of @alihdrndm/roomlist-core. Everything else is internal.
 
+export {
+  type DiffChange,
+  DiffChangeSchema,
+  type DiffReport,
+  DiffReportSchema,
+  diffRoomingLists,
+} from "./diff.js";
 export { exportRoomingList } from "./export/export.js";
 export { getTarget, listTargets, type TargetInfo } from "./export/registry.js";
 export {
