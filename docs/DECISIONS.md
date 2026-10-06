@@ -235,3 +235,40 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 - Values in a change are strings (`String(n)` for numbers), in the order of the spec's compared-field list, with `sharesWith` last.
 - `list-v2.csv` also renames "Jonson, Erik" to "Johnson, Erik" with the same confirmation number. This is beyond the spec's list of differences on purpose: it proves step 1 (confirmation number) wins over name, and the pair counts as unchanged because names are not a compared field. The counts the spec asks for (3 added, 2 removed, dates on 2, room type on 1, 1 re-link) are unaffected.
 - Side effect of comparing `sharesWith` by the primary's name key (spec step 4): if a primary's name is corrected but the pair is matched by confirmation number, each of its sharers shows a `sharesWith` change although they still share the same booking. Kept as the spec defines it.
+
+## 2026-10-06 (M5)
+
+### Source condition for workspace typechecking
+- **Problem:** `pnpm verify` runs `typecheck` and `test` before `build`, but the CLI imports `@alihdrndm/roomlist-core`, whose `exports` point at `dist/`. On a fresh clone `dist/` does not exist yet.
+- **Did:** core's `exports` has a custom condition first, `"@alihdrndm/source": "./src/index.ts"`. The CLI's `tsconfig.json` sets `customConditions: ["@alihdrndm/source"]`, so `typecheck` reads core's TypeScript source. `tsconfig.build.json` resets it to `[]`, so the build uses core's `.d.ts`. Node and any published consumer ignore the unknown condition. The API (M6) uses the same setup.
+- **Why:** keeps the spec's root scripts and order exactly as written, with no build step hidden inside `typecheck`.
+
+### CLI tests build before they run
+- **Did:** the CLI `test` script is `pnpm --filter @alihdrndm/roomlist-core build && tsc -p tsconfig.build.json && vitest run --coverage`.
+- **Why:** M5's acceptance check says tests run the **built** binary with `execa`, and `pnpm test` runs before `pnpm build` in `verify`.
+
+### No coverage thresholds for the CLI
+- **Why:** the spec sets thresholds for `packages/core` only, and code running inside the spawned binary is not measured by in-process coverage.
+
+### CLI exit codes for cases the spec does not spell out
+- `validate` prints the full report and exits 1 when the list has any error (parse or validation, including file-level F errors); warnings alone exit 0.
+- `convert` refuses (exit 1, nothing written) when the parse or validation reports any error. This closes the M3 carry-forward: parser errors such as R006/R014/R015 are not visible to `exportRoomingList` alone.
+- `diff` refuses (exit 1) when either list has an error, printing the issues prefixed `before:` / `after:`, mirroring the API's `LIST_INVALID`. Lists are validated without a block (the spec's `diff` command has no `--block`).
+- Exit 2 for: missing or unreadable file, file over 5 MB, invalid `--block` JSON or schema, invalid `--options` JSON or options rejected by the target schema, unknown `--to`, invalid `--date-order`, output file exists without `--force`, unknown command or option.
+- The 5 MB limit is 5 × 1024 × 1024 bytes, the same as the API's default `MAX_UPLOAD_BYTES`; the file size is checked with `stat` before reading.
+
+### Colour without a dependency
+- **Did:** `node:util` `styleText` (built into Node 24), passed the target stream, so `NO_COLOR` and non-TTY output turn colour off. Severity is always written as a word too.
+- **Why:** OP7 names only `commander` for the CLI.
+
+### CLI output details
+- The issues table's "Code" column shows the issue `code` (for example `DATE_INVALID`), matching the web page's table; rule IDs are in `--json`.
+- `convert` prints, to stderr, every parse and validation warning with its source row, plus the export's own X-rule warnings (X101). It does not repeat the export's copy of the validation warnings, which only carry line numbers.
+- `packages/cli/tsconfig.json` sets `types: ["node"]` (the CLI is a Node program; the build excludes test files, which otherwise pulled in the Node typings).
+
+### M5 review follow-ups
+- **Colour rule written out:** `shouldUseColor(env, isTTY)` in `packages/cli/src/format.ts` returns true only on a TTY with `NO_COLOR` unset. Node's `styleText` lets `FORCE_COLOR` override `NO_COLOR`, which the spec forbids, so the CLI decides itself and calls `styleText` with `validateStream: false`. The rule applies to stdout (reports) and to stderr (problems) each by its own TTY state.
+- **Human output now complete:** `validate` prints primaries, sharers and the per-room-type table as well; `formats` prints each provenance item's source under it.
+- **Order of refusals in `convert`:** list errors (exit 1) are checked before the export options (exit 2), because core validates options inside `exportRoomingList`. A list with errors and bad `--options` therefore exits 1.
+- **`--options null`** is treated as "no options" (core's `options ?? {}`).
+- **`@alihdrndm/source` points at `src/`**, which `"files": ["dist"]` would not publish. Harmless: other consumers do not know the condition, and publishing is out of scope.
