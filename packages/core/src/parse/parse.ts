@@ -10,7 +10,7 @@ import { DateOrderEvidence } from "./dates.js";
 import { detectFormat } from "./detect-format.js";
 import { findHeaderRow, isBlankRow, mapHeaders } from "./headers.js";
 import { normalizeRow } from "./normalize.js";
-import { readXlsxRows } from "./xlsx.js";
+import { readXlsxRows, type SparseRows } from "./xlsx.js";
 
 const DEFAULT_MAX_ROWS = 5000;
 
@@ -33,7 +33,7 @@ export async function parseRoomingList(
   if (detected.kind === "rejected") return failed("csv", [detected.issue]);
   const format = detected.kind;
 
-  let rows: string[][];
+  let rows: SparseRows;
   if (detected.kind === "xlsx") {
     const read = await readXlsxRows(input, options.sheetName);
     if (read.kind === "rejected") return failed(format, [read.issue]);
@@ -61,35 +61,46 @@ export async function parseRoomingList(
     headerRowNumber,
   );
   const issues: Issue[] = [...mapping.issues];
-  if (hasFileError(issues)) return failed(format, issues, mapping.columns);
+  if (hasFileError(issues)) {
+    const warnings = mapping.warnings.finish(headerRowNumber);
+    return failed(format, [...issues, ...warnings], mapping.columns);
+  }
 
   // Step 7: row limit. Blank rows are skipped but keep their row number.
   const dataRows: { cells: string[]; row: number }[] = [];
+  // forEach skips the holes of a sparse (Excel) row list, so unused rows cost nothing.
   rows.forEach((cells, index) => {
-    if (index > headerIndex && !isBlankRow(cells))
+    if (cells !== undefined && index > headerIndex && !isBlankRow(cells))
       dataRows.push({ cells, row: index + 1 });
   });
 
   // A column with no header is padding unless it holds data; data would be lost silently.
   // CSV rows may also be longer than the header row; those extra cells have no header either.
   const headerWidth = rows[headerIndex]?.length ?? 0;
-  const widest = Math.max(
-    headerWidth,
-    ...dataRows.map(({ cells }) => cells.length),
-  );
-  const headerless = [...mapping.blankHeaderIndexes];
-  for (let index = headerWidth; index < widest; index++) headerless.push(index);
-  for (const index of headerless) {
-    if (dataRows.some(({ cells }) => (cells[index] ?? "").trim() !== "")) {
-      issues.push(
-        makeIssue(
-          "W201",
-          `Column ${index + 1} has no header, so its data is ignored. Add a header if it matters.`,
-          { row: headerRowNumber },
-        ),
-      );
-    }
+  const blankHeaders = new Set(mapping.blankHeaderIndexes);
+  // One pass over the cells that exist: work follows the size of the file, never
+  // "number of columns x number of rows". (Spreading row counts into Math.max or
+  // looping over every possible column both blew up on large or very wide files.)
+  const headerlessWithData = new Set<number>();
+  for (const { cells } of dataRows) {
+    cells.forEach((cell, index) => {
+      if (
+        cell.trim() !== "" &&
+        (index >= headerWidth || blankHeaders.has(index))
+      )
+        headerlessWithData.add(index);
+    });
   }
+  for (const index of [...headerlessWithData].sort((a, b) => a - b)) {
+    mapping.warnings.add(() =>
+      makeIssue(
+        "W201",
+        `Column ${index + 1} has no header, so its data is ignored. Add a header if it matters.`,
+        { row: headerRowNumber },
+      ),
+    );
+  }
+  issues.push(...mapping.warnings.finish(headerRowNumber));
   if (dataRows.length > maxRows) {
     issues.push(
       makeIssue(

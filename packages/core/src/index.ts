@@ -8,12 +8,20 @@ export {
   diffRoomingLists,
 } from "./diff.js";
 export { exportRoomingList } from "./export/export.js";
-export { getTarget, listTargets, type TargetInfo } from "./export/registry.js";
+export {
+  getTarget,
+  listTargets,
+  type TargetInfo,
+  TargetInfoSchema,
+  type TargetsResponse,
+  TargetsResponseSchema,
+} from "./export/registry.js";
 export {
   ExportOptionsError,
   ExportPreconditionError,
   type ExportResult,
   type Provenance,
+  ProvenanceSchema,
   TARGET_IDS,
   type TargetId,
   UnknownTargetError,

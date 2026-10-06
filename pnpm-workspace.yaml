@@ -6,3 +6,5 @@ packages:
 allowBuilds:
   sharp: false
   unrs-resolver: false
+  # Telemetry package pulled in by Swagger UI; never run its install script.
+  "@scarf/scarf": false

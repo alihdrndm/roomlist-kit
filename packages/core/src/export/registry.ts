@@ -5,7 +5,7 @@ import { maestroCsv } from "./maestro-csv.js";
 import { operaCloudXlsx } from "./opera-cloud-xlsx.js";
 import { opera5Xml } from "./opera5-xml.js";
 import {
-  type Provenance,
+  ProvenanceSchema,
   TARGET_IDS,
   type Target,
   type TargetId,
@@ -64,15 +64,22 @@ export function getTarget(id: string): Target {
   return TARGETS[id];
 }
 
-export type TargetInfo = {
-  id: TargetId;
-  label: string;
-  fileExtension: string;
-  contentType: string;
+export const TargetInfoSchema = z.strictObject({
+  id: z.enum(TARGET_IDS),
+  label: z.string(),
+  fileExtension: z.string(),
+  contentType: z.string(),
   /** JSON Schema of the target's options, for forms and API docs. */
-  optionsSchema: Record<string, unknown>;
-  provenance: Provenance[];
-};
+  optionsSchema: z.record(z.string(), z.unknown()),
+  provenance: z.array(ProvenanceSchema),
+});
+export type TargetInfo = z.infer<typeof TargetInfoSchema>;
+
+/** The body of GET /v1/formats. */
+export const TargetsResponseSchema = z.strictObject({
+  targets: z.array(TargetInfoSchema),
+});
+export type TargetsResponse = z.infer<typeof TargetsResponseSchema>;
 
 /** What /v1/formats and the web page show: every target and what is verified about it. */
 export function listTargets(): TargetInfo[] {

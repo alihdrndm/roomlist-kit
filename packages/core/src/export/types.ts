@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type { BlockContext, Issue, RoomingEntry } from "../model.js";
 import type { Summary } from "../summarize.js";
 
@@ -20,11 +20,12 @@ export type ExportResult = {
 };
 
 /** One fact about an export format and whether it was checked against the vendor's own documentation. */
-export type Provenance = {
-  aspect: string;
-  status: "verified" | "assumed";
-  source: string;
-};
+export const ProvenanceSchema = z.strictObject({
+  aspect: z.string(),
+  status: z.enum(["verified", "assumed"]),
+  source: z.string(),
+});
+export type Provenance = z.infer<typeof ProvenanceSchema>;
 
 /** Entries already narrowed to the strict shape, in output order, plus the facts a target may need. */
 export type ExportInput = {

@@ -215,3 +215,27 @@ describe("parseRoomingList", () => {
     expect(result.entries[0]?.lastName).toBe('O"Brien');
   });
 });
+
+describe("parseRoomingList on very large files", () => {
+  it("F007: a 5 MB CSV with over 200,000 short rows is reported, not a stack overflow", async () => {
+    // Regression: spreading one Math.max argument per row crashed with "Maximum call stack size exceeded".
+    const header = "Last Name,Arrival,Departure\n";
+    const row = "A,2026-11-10,2026-11-11\n";
+    const text = header + row.repeat(Math.ceil((5 * 1024 * 1024) / row.length));
+    const result = await parseRoomingList(csv(text), { maxRows: 5000 });
+    expect(ruleIds(result)).toEqual(["F007"]);
+    expect(result.rowCount).toBeGreaterThan(200_000);
+    expect(result.entries).toEqual([]);
+    // About 0.8 s normally; coverage instrumentation makes it several times slower.
+  }, 30_000);
+
+  it("a wide row far to the right of the header still warns once per headerless column", async () => {
+    const result = await parseRoomingList(
+      csv("Last Name,Arrival,Departure\nA,2026-11-10,2026-11-11,x,y\n"),
+    );
+    expect(result.issues.map((issue) => issue.ruleId)).toEqual([
+      "W201",
+      "W201",
+    ]);
+  });
+});
