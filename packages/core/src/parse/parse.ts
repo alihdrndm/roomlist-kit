@@ -141,6 +141,7 @@ export async function parseRoomingList(
     issues: sortIssues(issues),
     columns: mapping.columns,
     rowCount: dataRows.length,
+    entryRows: dataRows.map(({ row }) => row),
   };
 }
 
@@ -156,5 +157,12 @@ function failed(
   columns: ParseResult["columns"] = [],
   rowCount = 0,
 ): ParseResult {
-  return { format, entries: [], issues: sortIssues(issues), columns, rowCount };
+  return {
+    format,
+    entries: [],
+    issues: sortIssues(issues),
+    columns,
+    rowCount,
+    entryRows: [],
+  };
 }

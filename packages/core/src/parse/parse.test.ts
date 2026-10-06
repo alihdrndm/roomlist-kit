@@ -124,6 +124,7 @@ describe("parseRoomingList", () => {
     );
     expect(result.issues[0]).toMatchObject({ ruleId: "R002", row: 5 });
     expect(result.entries[0]?.line).toBe(1);
+    expect(result.entryRows).toEqual([5]);
   });
 
   it("collects every cell problem in one run, sorted errors first", async () => {

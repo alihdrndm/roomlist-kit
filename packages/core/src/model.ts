@@ -137,5 +137,7 @@ export const ParseResultSchema = z.strictObject({
   issues: z.array(IssueSchema),
   columns: z.array(ColumnSchema),
   rowCount: z.int(),
+  /** Source row of entries[i]; lets the validator name rows. See docs/DECISIONS.md, M2. */
+  entryRows: z.array(z.int()),
 });
 export type ParseResult = z.infer<typeof ParseResultSchema>;

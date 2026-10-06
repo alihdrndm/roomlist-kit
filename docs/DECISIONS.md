@@ -77,7 +77,7 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 ### Invalid count cells keep a default value
 - **Spec said:** an unconvertible cell leaves the field unset.
 - **Did:** for `line`, `rooms`, `adults`, `children`, `infants` the issue (R014/R006/R007) is raised and the field gets its default (file-order line, 1, the adults rule, 0, 0). `sharesWithLine` and dates are left unset.
-- **Why:** these fields are required in `ParsedEntry`. The error still blocks conversion, and treating the bad cell as blank stops R007 being reported twice.
+- **Why:** these fields are required in `ParsedEntry`. The error still blocks conversion. Treating a bad cell as blank avoids a second R007 in the common case; one edge remains: `adults` unreadable with `children` = 0 (or the reverse) gives the parser's R007 and also the validator's "adults + children < 1" R007 on the same row (corrected 2026-10-06, M2 review).
 
 ### An empty required date raises R002
 - **Did:** an empty `arrivalDate` or `departureDate` cell raises R002 ("is empty"); an empty `dateOfBirth` does not.
@@ -128,3 +128,39 @@ Dated list of decisions and deviations from `HANDOFF.md` (OP5, OP7).
 ### `.gitattributes` pins line endings
 - **Did:** `* text=auto eol=lf`; `fixtures/** -text`; `*.xlsx binary`.
 - **Why:** fixtures and golden files are compared byte for byte; `core.autocrlf=true` on Windows would otherwise rewrite them.
+
+## 2026-10-06 (M2)
+
+### Issue rows reach the validator through `entryRows` (owner decision)
+- **Spec said:** `validateRoomingList(list)`; issues carry `row` (source row) and messages name the row. Entries do not know their row.
+- **Did:** `ParseResult` gains `entryRows: number[]` (source row of `entries[i]`). `validateRoomingList(list, { entryRows? })`. With rows, issues have `row` and `line` and messages start `Row N:`. Without rows, issues have only `line` and messages start `Line N:`.
+- **Why:** chosen by the repo owner; keeps the entry JSON shape exactly as the spec table.
+
+### R001 and R015 both fire on a too-long last name (owner decision)
+- **Did:** the validator sees no last name and reports R001 next to the parser's R015.
+- **Why:** chosen by the repo owner; the validator stays a pure function of the list.
+
+### Cell-level rules stay in the parser
+- **Spec said:** every rule is its own exported function in `validate/rules.ts`.
+- **Did:** R002, R006, R014, R015, W201, W205, W207, W208 and the bad-cell half of R007 are raised in `parse/` (they need the raw cell text, which entries no longer have). The entry-level rules (R001, R003–R005, R007 sum, R008–R013, W202–W204, W206) are one exported function each in `validate/rules.ts`.
+- **Why:** after parsing, a bad cell is just a missing field; only the parser can tell "blank" from "unreadable".
+
+### Rule details the spec leaves open
+- R003, R004, W202, W203 and W206 skip an entry whose needed date is missing (R002 already reported it).
+- R004 and W202 check only the side of the block that has a date (`startDate` without `endDate` is allowed by the schema).
+- A self-reference is R011 only, not also R010. R012 is checked only when the target exists.
+- R013: the room's people are the primary plus every entry whose `sharesWithLine` is the primary's line; the maximum is looked up case-insensitively by the primary's room type; no room type or no maximum for it → not checked.
+- W203: needs a last name and both dates on both entries. "Later" and "earlier" mean line numbers (file order only breaks ties between duplicate lines); reported once on the later line, naming the lowest-numbered earlier match.
+- R004 reports each side separately: a stay that starts before and ends after the block gives two R004 issues.
+- W206 is checked only when the target exists and is itself a primary (otherwise R010/R012 apply).
+- Summary: `byRoomType` sorted by room type in code-point order, `"(none)"` last; an entry whose departure is not after its arrival counts as "invalid date" for night figures; a sharer is any entry with `sharesWithLine`.
+
+### Validator issues show normalised values, not raw cell text
+- **Spec said:** `Issue.value` is "the offending raw cell text"; the sample message shows the date as typed (`11/09/2026`).
+- **Did:** issues raised by `validateRoomingList` (R001, R003–R013, W202–W206) put the normalised value in `value` and `message`: ISO dates (`2026-11-09`), upper-cased room types, line numbers as text. Parser issues (R002, R006, R014, R015, W201, W208, …) still carry the raw cell text.
+- **Why:** the validator works on entries, which keep only normalised values (owner's `entryRows` decision keeps the entry shape unchanged). Carrying raw text too would mean adding fields to every entry.
+
+### Summary `firstArrival` / `lastDeparture` include sharers
+- **Did:** both come from every entry with a valid stay, sharers included. If a sharer stays longer than its primary, `byNight` runs to the sharer's departure and those extra nights show 0 rooms.
+- **Why:** the spec defines `byNight` as running from `firstArrival` to `lastDeparture − 1` but does not say whose stays define them; the planner's group dates are everyone's dates. W206 already warns about the mismatched sharer.
+
