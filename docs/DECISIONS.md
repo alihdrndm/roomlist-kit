@@ -343,7 +343,8 @@ Two review blockers were unbounded work from one 5 MB upload. Both fixes are in 
 
 ### Resolved after the M6 reviews: own CSV and Excel readers (owner decisions)
 The second review run left two unbounded-cost cases. Both are fixed in core; this work was not re-reviewed (two reviewer runs per milestone), which the owner was told.
-1. **Own CSV reader (owner: "own small reader").** `csv-parse` took about 0.13 ms per row shorter than the header (a 5 MB file of one-cell rows blocked the server for minutes; no option avoids it). `parse/csv.ts` is now a single linear pass. **Spec said:** step 2 parses with `csv-parse/sync`. **Did:** `csv-parse` is now a devDependency, used only by a fast-check differential test (2,000 generated documents: LF/CRLF, `,` `;` tab, quoted delimiters, doubled quotes and newlines, empty lines, ragged rows) that proves the same rows. Deliberate differences: text after a closing quote is kept (`"Ada"Grace` → `AdaGrace`; csv-parse rejected the file), a lone `` also ends a record, and every all-blank row is stored as one shared `[""]` (millions of blank lines must not cost an array each). Result: 2.6 million one-cell lines in 6 ms (F007), 2.6 million blank lines in under a second.
+1. **Own CSV reader (owner: "own small reader").** `csv-parse` took about 0.13 ms per row shorter than the header (a 5 MB file of one-cell rows blocked the server for minutes; no option avoids it). `parse/csv.ts` is now a single linear pass. **Spec said:** step 2 parses with `csv-parse/sync`. **Did:** `csv-parse` is now a devDependency, used only by a fast-check differential test (2,000 generated documents: LF/CRLF, `,` `;` tab, quoted delimiters, doubled quotes and newlines, empty lines, ragged rows) that proves the same rows. Deliberate differences: text after a closing quote is kept (`"Ada"Grace` → `AdaGrace`; csv-parse rejected the file), a lone `
+` also ends a record, and every all-blank row is stored as one shared `[""]` (millions of blank lines must not cost an array each). Result: 2.6 million one-cell lines in 6 ms (F007), 2.6 million blank lines in under a second.
 2. **Own Excel reader on `fflate` (owner: "lean own reader").** The owner's first pick, exceljs's streaming reader, was rejected: when a zip lists worksheets before `sharedStrings.xml` (exceljs's own writer does), it writes each worksheet to a temporary file on disk, which the spec forbids. `parse/xlsx.ts` (with `xlsx-parts.ts`, `xlsx-sheet.ts`, `xlsx-xml.ts`, `zip.ts`) now unpacks only the parts it needs (workbook, relationships, shared strings, styles, the chosen sheet) with fflate's streaming inflater, each part under a limit (sheet 48 MB, shared strings 24 MB, styles 8 MB, workbook/relationships 2 MB), stops a part the moment it unpacks past its declared size (a forged zip: 400 MB hidden behind a 1 KB claim is refused in 142 ms), reads shared strings lazily, and stops reading a sheet once it has `maxRows + 100` non-blank rows. **Dependency (OP7):** `fflate` (pure JavaScript, no Node APIs). exceljs stays for writing the OPERA Cloud export and as the reference in tests. **Equivalence:** tests read `clean-40.xlsx` and exceljs-written workbooks with every kind of cell (shared and inline strings, numbers, dates with built-in and custom formats, 1904 dates, booleans, formulas, rich text, hyperlinks, error cells, sparse cells, several sheets) with both readers and require identical text. Dates follow exceljs's rules exactly (a number format is a date if, without `[...]` and quoted text, it contains y m d h M s or b; built-in ids 14–22 and 45–47).
 - **F007 when reading stopped early:** "The file has more than N guest rows; the limit is N." (the real total is not counted).
 - **Readers are async and yield** to the event loop every 256 KB (`parse/yield.ts`, `setTimeout`, available everywhere). Measured on the built API while polling `/healthz` every 100 ms: the worst health-check delay was 291 ms for a pathological dense sheet (109 x 16,384 cells, 5 s to report F005) and 138 ms for 5 MB of blank lines.
@@ -402,3 +403,44 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 ### Playwright: a smoke test and a keyboard test
 - **Spec said:** one smoke test. **Did:** also `e2e/keyboard.spec.ts`, which runs the same flow with key presses only. It is the automated proof of the "keyboard-only walkthrough" acceptance criterion; the written steps are in `docs/walkthrough/M7.md`.
 - **Did:** `apps/web/playwright.config.ts` builds core, then starts the API (`pnpm --filter api start`, port 4010, because `nest start` compiles against core's `dist/`, which a fresh clone lacks) and the web app (`next dev`, port 3010) with the same throwaway key `e2e-key`, and reuses servers already running on those ports. It reads no environment variables (env is read only in `config.ts` and `env.ts`), so CI and local runs behave the same.
+
+## 2026-10-07 (M8)
+
+### The API runs as a container in AWS
+- **Did:** `infra/api.ts` deploys the API with `sst.aws.Vpc` → `sst.aws.Cluster` → `sst.aws.Service` built from `apps/api/Dockerfile`, with a load balancer forwarding `80/http` to `4010/http` and a health check on `/healthz`.
+- **Why:** SST bundles Lambda functions with esbuild, which does not emit the decorator metadata NestJS dependency injection needs. A container built with the NestJS build avoids that.
+
+### Rate limits for web users after deployment (owner decision)
+- **Did:** SST sets `TRUST_PROXY=1` (the load balancer is the one proxy in front of the container). Direct API callers are counted by their own address. Requests from the web app arrive from its Lambda functions' addresses, so web users share those rate-limit buckets.
+- **Why:** chosen by the owner over a trusted client-IP header: no extra code, and easy to explain. Listed in the README roadmap as "per-user rate limits for web traffic". Compose keeps `TRUST_PROXY=0`.
+
+### Seed data (owner decision)
+- **Spec said:** `docker compose up --build` must bring up a working stack "with seed data". **Did:** nothing extra is seeded. The project has no database or backing service; the sample list and block ship in the web image (`apps/web/public/samples`, behind "Load sample"), and the README examples use `fixtures/`.
+
+### SST version, typecheck and generated types
+- **Did:** root devDependencies `sst` `^3.19.3` (the spec names SST v3; `latest` is already 4.x) and `typescript` `^5.9.3`. `pnpm sst install` needed no AWS credentials, so the spec's fallback (excluding the files from typecheck) was not used. The root `typecheck` script now ends with `typecheck:infra` (`sst install && tsc -p tsconfig.json`), because `.sst/` is gitignored and a fresh clone or CI has to generate the types first. This step needs network access.
+- **Root `tsconfig.json`** covers `sst.config.ts` and `infra/` only and does not extend `tsconfig.base.json`: SST's generated platform files are TypeScript sources, and the base file's extra flags (`exactOptionalPropertyTypes`, `verbatimModuleSyntax`) reject them. TypeScript 5 at the root for the same reason: TypeScript 6 rejects the `module` keyword for namespaces that SST's platform code still uses.
+- `pnpm-workspace.yaml` denies the install script of `aws-sdk` (pulled in by `sst`; it only prints a maintenance notice).
+
+### Next.js 16 on SST is unverified
+- The SST docs (checked 2026-10-07) say `sst.aws.Nextjs` uses OpenNext 3.9.14 for Next.js 15 and later and do not mention Next.js 16. The config does not override `openNextVersion`, because no version is documented for 16. Recorded in `docs/DEPLOY.md` as a known risk for whoever deploys.
+
+### Helmet: no `upgrade-insecure-requests`
+- **Did:** `apps/api/src/app.ts` keeps helmet's default Content-Security-Policy but removes `upgrade-insecure-requests`, with an e2e test. **Why:** the deployed load balancer has no domain and serves plain HTTP. With that directive, browsers would load Swagger UI's assets over HTTPS, where nothing answers. This closes the M6 carry-forward.
+
+### Docker images
+- Both Dockerfiles: multi-stage on `node:24-slim`, pnpm through corepack (the version pinned in `packageManager`), `pnpm deploy --filter <app> --prod`, `USER node`, and a `HEALTHCHECK` that uses Node's built-in `fetch`, because the slim image has no curl. pnpm 12.2 and later no longer need `injectWorkspacePackages` for `deploy` (pnpm docs), so no workspace setting changed. The Dockerfiles copy `dist/` (API) and `.next/`, `public/`, `next.config.ts` (web) into the deploy output only if `pnpm deploy` left them out.
+- The web health check requests `/`, because the spec adds no health route to the web app.
+- **Image sizes** (measured): API 457 MB on disk, web 918 MB. The web image carries Next.js's full production dependencies. `output: "standalone"` would shrink it but is a different packaging model from the `pnpm deploy` the spec asks for.
+- `.dockerignore` also excludes `.env`, so a local secrets file cannot end up in an image layer.
+- `compose.yaml` sets `API_KEY: ${API_KEY:-local-dev-key}`. The key is always set, as the spec requires, and the default is a public local placeholder, not a secret.
+
+### `pnpm dev` and the CLI examples
+- `pnpm dev` starts no Docker services, because the project has none ("Backing services: none"). It builds core first, because `nest start --watch` compiles against core's `dist/`, which a fresh clone does not have.
+- The README "Try it" CLI examples run `node packages/cli/dist/index.js` after `pnpm build`. `pnpm --filter … exec roomlist` would run inside `packages/cli`, where the `fixtures/` paths do not resolve.
+
+### Definition of done, item 4 (the marker-word grep)
+- The grep in item 4 (for the three unfinished-work marker words) matches two lines outside `HANDOFF.md`, both intended:
+  - `.claude/agents/milestone-reviewer.md`: HANDOFF.md fixes this file word for word, and it tells the reviewer to check that those markers are absent.
+  - `pnpm-lock.yaml`: the sha512 integrity hash of `safer-buffer@2.1.2` happens to contain three capital X letters in a row. It is a checksum, not a note.
+- Build output (`.next`, `dist`) can also match on a machine that has built the project; a fresh clone has none. This entry avoids writing the marker words itself, so it does not add a match.

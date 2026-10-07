@@ -1,0 +1,27 @@
+# The project is stateless, so there are no backing services, only api and web.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "4010:4010"
+    environment:
+      # The API key is always set (spec). The default is a local placeholder,
+      # never a real secret; override it with API_KEY in your shell or .env.
+      API_KEY: ${API_KEY:-local-dev-key}
+      TRUST_PROXY: "0"
+      NODE_ENV: production
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3010:3010"
+    environment:
+      API_BASE_URL: http://api:4010
+      API_KEY: ${API_KEY:-local-dev-key}
+    depends_on:
+      api:
+        condition: service_healthy

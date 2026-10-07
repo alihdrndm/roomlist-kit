@@ -1,0 +1,18 @@
+{
+  // Typechecks the SST infrastructure only. Each package and app has its own
+  // tsconfig; this one covers the root files no workspace package owns. The `sst`
+  // globals come from .sst/platform, which `sst install` generates. It does not
+  // extend tsconfig.base.json: that file's extra flags (exactOptionalPropertyTypes,
+  // verbatimModuleSyntax, ...) would also apply to SST's generated .ts sources,
+  // which are not written for them.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["sst.config.ts", "infra/**/*.ts"]
+}

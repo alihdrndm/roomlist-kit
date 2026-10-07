@@ -12,9 +12,9 @@ The full spec is `HANDOFF.md`. Work one milestone at a time; run `pnpm verify` b
 | `pnpm build` | Build every package and app |
 | `pnpm lint` | `biome check .` |
 | `pnpm format` | `biome check --write .` |
-| `pnpm typecheck` | `tsc --noEmit` in every workspace package |
+| `pnpm typecheck` | `tsc --noEmit` in every workspace package, then `sst install` + the SST config (`typecheck:infra`) |
 | `pnpm test` | Vitest unit tests with coverage |
-| `pnpm test:e2e` | API e2e (and Playwright smoke test from M7) |
+| `pnpm test:e2e` | API e2e and the Playwright smoke and keyboard tests |
 | `pnpm verify` | lint + typecheck + test + test:e2e + build, stop at first failure |
 
 ## Conventions that matter most

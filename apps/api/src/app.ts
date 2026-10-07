@@ -42,7 +42,14 @@ export async function createApp(
 
   // Registered before Nest's own middleware (pino), so the id exists when the access log is written.
   app.use(requestIdMiddleware);
-  app.use(helmet());
+  // The deployed load balancer serves plain HTTP (no domain), so the default
+  // upgrade-insecure-requests directive would make browsers fetch Swagger UI's
+  // assets over HTTPS, where nothing answers.
+  app.use(
+    helmet({
+      contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } },
+    }),
+  );
   setupSwagger(app);
 
   // On SIGTERM: stop accepting connections and let in-flight requests finish.
