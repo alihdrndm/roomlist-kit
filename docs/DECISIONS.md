@@ -1,6 +1,6 @@
 # Decisions and deviations
 
-Dated list of decisions and deviations from `HANDOFF.md`, the project spec (OP5, OP7). The spec is kept private on the owner's machine; on 2026-10-07 it and the `.claude/` folder were removed from the git history, so every commit ID changed. IDs cited below are the new ones.
+Dated list of decisions and deviations from `HANDOFF.md`, the project spec (OP5, OP7). The spec is kept private on the owner's machine; on 2026-10-07 it and the `.claude/` folder were removed from the git history, and later that day every commit's dates were corrected to the real push times recorded by GitHub (some had been made with January 2024 dates). Both rewrites changed every commit ID; IDs cited below are the current ones.
 
 ## 2026-10-05 (M0)
 
@@ -453,7 +453,7 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 - **Compose publishes on `127.0.0.1` only**, because the API key in `compose.yaml` and the README is a public placeholder.
 - `.gitignore` and `.dockerignore` also cover `.env.*` (Next.js loads `.env.local` and friends), keeping `.env.example`.
 - **DEPLOY.md** now lists the Cloud Map namespace and its Route 53 private hosted zone (created by every `sst.aws.Vpc`, billed monthly), says secrets are stored encrypted in S3 (not SSM), and notes that the key is a plain environment variable in the task definition and the Lambda configuration.
-- **Order:** the M8 commit (`c54f779`) was made before the reviewer ran; these fixes go in a follow-up commit.
+- **Order:** the M8 commit (`a92844a`) was made before the reviewer ran; these fixes go in a follow-up commit.
 
 ## 2026-10-07 (after M8)
 
