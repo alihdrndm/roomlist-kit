@@ -26,9 +26,11 @@ pnpm dev
 
 `pnpm format` fixes most lint and formatting problems.
 
-## Commit style
+## Commit style and pull requests
 
 Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`. Example: `fix: reject a sharer that points at itself`.
+
+`main` is protected: open a pull request, wait for the `verify` and `e2e` checks, then squash-merge. The PR title becomes the commit message, so give it the Conventional Commits form.
 
 ## Adding a test
 
