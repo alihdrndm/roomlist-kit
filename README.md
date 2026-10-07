@@ -1,12 +1,26 @@
-# roomlist-kit
+# roomlist-kit: hotel rooming list validator and OPERA / Maestro PMS import converter
 
-roomlist-kit takes a messy hotel rooming list (CSV or Excel), tells the planner exactly what is wrong with it, and converts it into the import file each hotel's property-management system expects.
+**Validate a hotel rooming list (CSV or Excel) against the room block, then convert it into the import file Oracle OPERA 5, OPERA Cloud or Maestro PMS expects.** Open-source TypeScript: a library, a CLI, a REST API and a web app. No database, and nothing you upload is stored.
 
 [![CI](https://github.com/alihdrndm/roomlist-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/alihdrndm/roomlist-kit/actions/workflows/ci.yml)
 
 ## The problem
 
-An event planner keeps the rooming list, the list of who sleeps where in the room block, in a spreadsheet. Every hotel system wants that list in a different shape. Oracle OPERA 5 imports XML with fixed field names, OPERA Cloud imports Excel with "Line" and "Sharer" columns, and Maestro imports a CSV with `BUILDING/ROOMTYPE` codes. Planners re-type and re-format by hand, and the mistakes show up at check-in: a stay outside the block dates, a sharer who points at nobody, the same guest listed twice, or a room type the block does not have. roomlist-kit checks the list against the block, reports each issue with the row it is on, and counts the room nights per night and per room type. It then writes the file the hotel's system can import. It can also compare two versions of a list, so you can see what changed since you last sent it.
+A group rooming list is where event budgets quietly leak. The planner keeps it in a spreadsheet: who sleeps where, which nights, who shares with whom, all inside a contracted room block. Every hotel system wants that list in a different shape. OPERA 5 takes XML, OPERA Cloud takes Excel with "Line" and "Sharer" columns, and Maestro takes a CSV with `BUILDING/ROOMTYPE` codes. So someone re-types it by hand, and the mistakes show up at the front desk: a stay outside the block dates, a sharer who points at nobody, the same guest booked twice, a room type the block never had. roomlist-kit catches those before the hotel does, counts the room nights per night and per room type, and writes a file the hotel can import as-is. When the client sends "v7_FINAL_really.xlsx", it shows exactly what changed since v6.
+
+## What roomlist-kit checks and converts
+
+| | |
+|---|---|
+| **Reads** | CSV (comma, semicolon or tab) and Excel `.xlsx`, with messy headers ("Surname", "Check-In", "Date In"…) mapped to known fields, and US or European date order |
+| **Validates** | 31 numbered rules: missing names, impossible dates, stays outside the block or its shoulder days, unknown room types, over-occupancy, sharers who point at nobody or at another sharer, duplicate guests, and more |
+| **Summarizes** | Guests, rooms, people, **room nights**, rooms per night and per room type: the numbers you compare against the contract |
+| **Converts** | Oracle OPERA 5 (XML), Oracle OPERA Cloud (Excel), Maestro PMS (CSV), plus canonical JSON and CSV |
+| **Compares** | Two versions of a list: who was added, removed or changed, and the room-night difference |
+
+Every issue comes with its row number, a stable code (`R004 STAY_OUTSIDE_BLOCK`) and a plain-English message, so you can fix the spreadsheet rather than guess.
+
+**Built to take hostile files.** Uploads are capped at 5 MB and 5,000 guest rows. The readers are written to fail fast: 2.6 million one-cell CSV lines are refused in 6 ms, and a forged Excel zip hiding 400 MB behind a 1 KB claim is refused in 142 ms. The test suite has 514 tests, and the core library has 98% line coverage.
 
 ## Quick start
 
@@ -146,6 +160,17 @@ flowchart LR
 
 All the real work is in `@alihdrndm/roomlist-core`, a plain TypeScript library with no server in it. It parses the file, validates every entry against the block context, summarizes room nights, and then either exports the list in a target format or diffs it against another list. The CLI and the NestJS API are thin wrappers that read a file, call core, and print or return the result. The web app never calls the API from the browser: its Next.js route handlers do, so the API key stays on the server. Nothing is stored; each request is processed in memory.
 
+The REST API has four endpoints, documented with OpenAPI at `/docs`:
+
+| Endpoint | Does |
+|----------|------|
+| `POST /v1/rooming-lists/validate` | Issues and summary for one list (always 200; the report is the product) |
+| `POST /v1/rooming-lists/convert` | The import file for a chosen target, or a 422 listing what blocks it |
+| `POST /v1/rooming-lists/diff` | Added, removed and changed guests between two lists |
+| `GET /v1/formats` | Every target, its options, and what is verified or assumed |
+
+Errors are always `application/problem+json` with a stable `code`; see [docs/ERRORS.md](docs/ERRORS.md).
+
 ## Verified vs assumed
 
 Field names and formats were taken from public vendor documentation, not tested against a running hotel system. [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md) lists every unverified item (A1 to A8) with how to check it and what to change.
@@ -153,6 +178,35 @@ Field names and formats were taken from public vendor documentation, not tested 
 - OPERA 5: the XML root and record element names (if your template differs, set the `rootElement` and `recordElement` options), the date of birth format, and how sharers are counted.
 - OPERA Cloud: the Excel heading labels, dates written as text, and the email type code.
 - Maestro: the column order and header row, and the gender code. Check each against your hotel's own template before a real import.
+
+## FAQ
+
+### How do I import a rooming list into OPERA Cloud?
+Open the web app, load your file, press Validate, and fix any errors it lists. Then choose "Oracle OPERA Cloud (Excel)" and download. In OPERA Cloud, use the rooming list import; if a heading is not recognized, OPERA Cloud lets you map it by hand.
+
+### Which columns does my rooming list need?
+Three: a last name (or one full-name column, which is split for you), an arrival date and a departure date. Everything else (room type, sharer, email, adults, children…) is optional and checked when present. Extra columns are reported as warnings, not errors.
+
+### Does it store or log guest data?
+No. Files are processed in memory for one request and never written to disk. Logs hold the request id, method, path, status and user agent, never file contents. There is no database. Details in [SECURITY.md](SECURITY.md).
+
+### Has it been tested against a live OPERA or Maestro system?
+No, and the repo says so. Formats follow the vendors' public documentation, and every detail that could not be verified is listed with an ID in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md) and on the web app's Formats page. Check those against your property's template before a real import.
+
+### Can I add another PMS?
+Yes. Each target is one file in `packages/core/src/export/`, plus its ID and a registry entry. The CLI, the API and the web app (including its option form) pick it up from there. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) shows where everything lives.
+
+### Can I deploy it?
+Yes. It runs anywhere Docker runs (`compose.yaml`), and an AWS setup with SST is included but never deployed for you. [docs/DEPLOY.md](docs/DEPLOY.md) lists every resource and which ones bill by the hour.
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): package map, request flow, where each rule is implemented
+- [docs/ERRORS.md](docs/ERRORS.md): every API error code
+- [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md): what is verified and what is assumed, per PMS
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision, dated
+- [docs/DEPLOY.md](docs/DEPLOY.md): optional AWS deployment
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md)
 
 ## Roadmap
 

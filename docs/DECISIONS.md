@@ -454,3 +454,9 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 - `.gitignore` and `.dockerignore` also cover `.env.*` (Next.js loads `.env.local` and friends), keeping `.env.example`.
 - **DEPLOY.md** now lists the Cloud Map namespace and its Route 53 private hosted zone (created by every `sst.aws.Vpc`, billed monthly), says secrets are stored encrypted in S3 (not SSM), and notes that the key is a plain environment variable in the task definition and the Lambda configuration.
 - **Order:** the M8 commit (`c54f779`) was made before the reviewer ran; these fixes go in a follow-up commit.
+
+## 2026-10-07 (after M8)
+
+### README written for search (owner request)
+- **Spec said:** README sections in a fixed order (pitch, The problem, Quick start, Try it, How it works, Verified vs assumed, Roadmap, License). **Did:** kept that order and every verified example output, and added three sections the owner asked for to make the page findable and useful: "What roomlist-kit checks and converts" (after The problem), "FAQ" and "Documentation" (before Roadmap). The title and pitch now name the systems people search for (OPERA 5, OPERA Cloud, Maestro PMS). The API endpoint table sits inside "How it works".
+- Every number in the README is measured in this repo: 31 rule IDs, 514 tests, 98% line coverage in core, the 5 MB / 5,000-row limits, 6 ms and 142 ms for the hostile-file cases (M6).
