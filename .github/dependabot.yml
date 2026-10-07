@@ -1,0 +1,36 @@
+# Weekly dependency updates. Minor and patch bumps arrive grouped in one PR per
+# ecosystem so CI runs once; major bumps come one per PR so each can be judged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # SST stays on v3 (the version the infra is written and typechecked for).
+      - dependency-name: sst
+        update-types: [version-update:semver-major]
+      # Each package pins its TypeScript major on purpose (docs/DECISIONS.md, M0 and M8).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories: [/apps/api, /apps/web]
+    schedule:
+      interval: weekly
+    ignore:
+      # The images stay on Node 24, the version in .nvmrc and package.json engines.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
