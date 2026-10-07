@@ -25,7 +25,7 @@ export type AppOverrides = {
   throttle?: { limit: number; ttlMs: number };
 };
 
-/** The limit from HANDOFF.md: 120 requests per minute per IP. */
+/** The limit from the project spec: 120 requests per minute per IP. */
 export const DEFAULT_THROTTLE = { limit: 120, ttlMs: 60_000 } as const;
 
 /**

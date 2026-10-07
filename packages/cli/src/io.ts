@@ -4,7 +4,7 @@ import {
   BlockContextSchema,
 } from "@alihdrndm/roomlist-core";
 
-/** Exit codes from HANDOFF.md "CLI". */
+/** Exit codes from the project spec ("CLI"). */
 export const EXIT = {
   /** Success, and the list has no errors. */
   ok: 0,

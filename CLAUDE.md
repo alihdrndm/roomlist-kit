@@ -2,7 +2,7 @@
 
 Validates a hotel rooming list (CSV/XLSX), converts it to a PMS import file (OPERA 5, OPERA Cloud, Maestro), and diffs two lists. Library + CLI + NestJS API + Next.js web.
 
-The full spec is `HANDOFF.md`. Work one milestone at a time; run `pnpm verify` before reporting.
+The full spec is `HANDOFF.md`, kept on the owner's machine (gitignored, not in the public repo). Work one milestone at a time; run `pnpm verify` before reporting.
 
 ## Root scripts
 

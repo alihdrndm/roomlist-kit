@@ -13,3 +13,6 @@ blob-report
 # Written again by `next dev` on every start; the repo keeps one CLAUDE.md (docs/DECISIONS.md, M0).
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+# The build spec and the Claude Code project setup stay on the owner's machine.
+HANDOFF.md
+.claude/

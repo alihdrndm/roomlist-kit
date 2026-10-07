@@ -31,7 +31,7 @@ flowchart LR
 4. `rooming-lists.service.ts` calls core: `parseRoomingList` → `validateRoomingList` → `summarize`, then `exportRoomingList` or `diffRoomingLists`.
 5. Any error becomes one `application/problem+json` body in `problem.filter.ts`.
 
-## Where each rule from HANDOFF.md lives
+## Where each rule of the spec lives
 
 | Rule | File |
 |------|------|

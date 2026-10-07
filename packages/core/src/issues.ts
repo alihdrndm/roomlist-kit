@@ -1,6 +1,6 @@
 import type { Issue, Severity } from "./model.js";
 
-// One table for every rule ID in HANDOFF.md, so the code and severity of a rule
+// One table for every rule ID in the project spec, so the code and severity of a rule
 // are written down exactly once and the parser, validator and exporters agree.
 export const RULES = {
   F001: { code: "FILE_EMPTY", severity: "error" },
@@ -23,7 +23,7 @@ export const RULES = {
   R012: { code: "SHARER_CHAIN", severity: "error" },
   R013: { code: "OCCUPANCY_EXCEEDS_MAX", severity: "error" },
   R014: { code: "LINE_INVALID", severity: "error" },
-  // Not in HANDOFF.md: added by owner decision, docs/DECISIONS.md 2026-10-06.
+  // Not in the project spec: added by owner decision, docs/DECISIONS.md 2026-10-06.
   R015: { code: "FIELD_TOO_LONG", severity: "error" },
   W201: { code: "UNMAPPED_COLUMN", severity: "warning" },
   W202: { code: "STAY_IN_SHOULDER", severity: "warning" },

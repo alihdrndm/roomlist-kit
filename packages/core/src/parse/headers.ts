@@ -6,7 +6,7 @@ import {
   type Issue,
 } from "../model.js";
 
-// Normalised header text → canonical field (HANDOFF.md "Alias table").
+// Normalised header text → canonical field (the spec's alias table).
 const ALIASES: Record<CanonicalField, string[]> = {
   line: [
     "line",

@@ -1,6 +1,6 @@
 # Assumptions: what was not verified against a real system
 
-Every item here was inferred from public documentation, not checked against a running hotel system. The IDs match `HANDOFF.md` and the `provenance` list returned by `GET /v1/formats` (and shown on the web page `/formats`). Each item says how to check it and what to change if it is wrong.
+Every item here was inferred from public documentation, not checked against a running hotel system. The IDs match the project spec and the `provenance` list returned by `GET /v1/formats` (and shown on the web page `/formats`). Each item says how to check it and what to change if it is wrong.
 
 What **was** verified from vendor documentation is listed per target in the same provenance list, with a link to the page.
 

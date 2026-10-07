@@ -39,11 +39,11 @@ Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`. 
 | Web unit tests (Vitest) | `apps/web/src/**/*.test.ts` |
 | Browser tests (Playwright) | `apps/web/e2e/*.spec.ts` |
 
-Name each test after what it proves: the validation rule ID, the error code, or the worked example ID. For example `R003 flags a departure before arrival` or `WE1: converts to Maestro CSV`. A failing test name then tells you which part of `HANDOFF.md` is broken.
+Name each test after what it proves: the validation rule ID, the error code, or the worked example ID. For example `R003 flags a departure before arrival` or `WE1: converts to Maestro CSV`. A failing test name then tells you which requirement is broken.
 
 Use synthetic data only (names like "Ada Okafor", emails at `example.com`). Never commit real guest data.
 
 ## Where deviations go
 
-- `docs/DECISIONS.md`: anything you did differently from `HANDOFF.md`, with date, what the spec said, what you did, and why.
+- `docs/DECISIONS.md`: anything you did differently from the project spec, with date, what the spec said, what you did, and why.
 - `docs/ASSUMPTIONS.md`: any fact about a hotel system (OPERA, Maestro) that you could not check against a real system.
