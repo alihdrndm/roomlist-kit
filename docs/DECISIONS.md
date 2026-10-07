@@ -353,3 +353,52 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 - `biome.json` turns `style/useImportType` and `complexity/noStaticOnlyClass` off for `apps/api/src/**`: the first so injected classes stay value imports (see above), the second because Nest dynamic modules (`AppModule.register`, `ConfigModule.forRoot`) are static-only classes by design.
 - The overflow W201 reads "N more columns are ignored (not recognised, or without a header)", because the counted columns can be unrecognised headers or headerless data columns.
 - `docs/ERRORS.md` (INTERNAL) now says the log holds the error class and location, not its message.
+
+## 2026-10-07 (M7)
+
+### The block is built from the form, `maxOccupancy` kept
+- **Did:** the request's `block` part is built from the form fields the spec lists (property code, block code, group reservation number, start and end date, shoulder days, room types). Empty fields are left out, never sent as `""`; an empty form sends no block. "Load sample" fills the form from `tech26.json` and keeps its `maxOccupancy` (not a form field) and sends it along.
+- **Why:** so the sample validates in the browser exactly as it does in the CLI and API (9 room nights, no errors).
+
+### Route handlers are a bounded proxy
+- **Did:** `src/lib/proxy.ts` rejects an upload with no `Content-Length` (422 `VALIDATION_FAILED`, one `errors` entry with path `content-length`, the same shape as the API's) or one larger than 5 MB per file plus 1 MB for framing (6 MB; 11 MB for compare, which has two files) with 413 `FILE_TOO_LARGE`, before reading the body. Only then is the body read and forwarded with `x-api-key`. Only `content-type`, `content-disposition`, `x-roomlist-warnings`, `x-request-id`, and `retry-after` / `x-ratelimit-*` (so a 429 says when to retry) come back; problem+json errors pass through unchanged.
+- **Why:** the web server must not buffer an unbounded body, and the API key and other API headers stay server-side.
+- **New code `API_UNAVAILABLE` (502)** when the API cannot be reached, in the same problem+json shape; documented in `docs/ERRORS.md` under "Web app only".
+
+### `x-forwarded-for` is passed through unchanged (carry-forward for M8)
+- **Did:** the proxy forwards the incoming `x-forwarded-for` as it is and does not add the web server's own address. The API (with `TRUST_PROXY`) decides which entry to trust.
+- **M8 (open):** the spec deploys the web with `sst.aws.Nextjs` (CloudFront + Lambda), so calls from the web reach the API's load balancer from the Lambda's egress address. The load balancer then appends that address, and with `TRUST_PROXY=1` the API would key every web user on the Lambda's address. Whoever builds M8 must decide how the API learns the client of a web request (for example: the API trusts one more hop only when the request carries the valid API key, which only the web holds), and test that the trusted entry is the one CloudFront wrote. In local compose, where the web port is reachable directly, a client can set `x-forwarded-for` itself; keep `TRUST_PROXY=0` there.
+
+### System fonts instead of `next/font/google`
+- **Did:** the M0 scaffold's Google font is replaced by the system font stack.
+- **Why:** `next build` (and the M8 Docker build) then needs no network access.
+
+### Option inputs come from each target's JSON Schema
+- **Did:** the convert panel renders each target's options from the `optionsSchema` that `/v1/formats` returns (enum → select, boolean → checkbox, string → text input, defaults prefilled). No option name is written into the UI.
+- **Why:** a new target or option shows up in the web app without a UI change.
+
+### Shared report schemas live in core
+- **Did:** `ValidateReportSchema` moved from `apps/api/src/schemas.ts` to `packages/core/src/summarize.ts`. The web app imports only types from core (`import type`), so no core code reaches the browser bundle.
+
+### Server-only files without a new dependency
+- **Did:** `env.ts` and `lib/proxy.ts` are imported only by route handlers and the `/formats` server component. A unit test scans every `"use client"` file and fails if one imports them, instead of adding the `server-only` package (OP7).
+
+### Page details the spec leaves open
+- **"Guests" tile** shows `summary.entries` (one row = one guest record, 4 for WE1), not `people` (6, which counts children and infants). The tile counts what the issues table refers to.
+- **`/compare`** adds one line under the tiles: room nights before and after, and the number of unchanged guests (all already in the diff summary).
+- **`/formats`** provenance table: two columns, Verified and Assumed. Each cell lists that column's aspects, each with its source (a link when it is a URL). `loading.tsx` shows a status while the server component waits for the API, and an empty list says so.
+- **Assumed aspects on `/`** are listed in full under the format select (not shortened to IDs), with the link to `/formats`.
+- **Errors from compare** (`LIST_INVALID`) name the list each issue belongs to ("Earlier list, row 3: …"), using the API's `side`. Long lists show the first 10 errors and "…and N more errors."
+- **Live region outcome:** after Validate or Compare, the status line announces the outcome ("Validated: 0 errors, 0 warnings.") rather than going quiet.
+
+### M7 review notes recorded
+- `apps/web/AGENTS.md` and `CLAUDE.md` are gitignored: `next dev` (also run by Playwright) writes them again on every start, and the M0 decision keeps one CLAUDE.md.
+- The compare tables head the entry number "Line" (Glossary), not "Row", which means the file row in error messages.
+- Successful API bodies are typed with `as`, not parsed with core's Zod schemas: they come from our own API through our own proxy.
+- The client-boundary test checks direct imports only; no shared client module imports `env` or `proxy` today.
+- `reuseExistingServer: true`: a local `pnpm dev` started with a different `API_KEY` makes the local e2e run fail with 401; stop it first.
+- **M8:** the proxy's bounded buffer relies on Node's HTTP parser enforcing `Content-Length`; re-check that under the `sst.aws.Nextjs` Lambda adapter.
+
+### Playwright: a smoke test and a keyboard test
+- **Spec said:** one smoke test. **Did:** also `e2e/keyboard.spec.ts`, which runs the same flow with key presses only. It is the automated proof of the "keyboard-only walkthrough" acceptance criterion; the written steps are in `docs/walkthrough/M7.md`.
+- **Did:** `apps/web/playwright.config.ts` builds core, then starts the API (`pnpm --filter api start`, port 4010, because `nest start` compiles against core's `dist/`, which a fresh clone lacks) and the web app (`next dev`, port 3010) with the same throwaway key `e2e-key`, and reuses servers already running on those ports. It reads no environment variables (env is read only in `config.ts` and `env.ts`), so CI and local runs behave the same.

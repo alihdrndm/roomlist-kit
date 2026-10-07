@@ -78,3 +78,18 @@ More than 120 requests per minute from the same IP address. The `x-ratelimit-*` 
 ## INTERNAL (500)
 
 An unexpected error on the server. The response carries no details on purpose. The server log records the error class and where it happened under the same request id (`instance`), but not the error message, because a library message can contain guest data. **Fix:** retry once; if it persists, report the `instance` value.
+
+## Web app only
+
+The web app (`apps/web`) forwards `/api/*` to the API and passes its problem+json answers through unchanged. It adds one code of its own, and answers two checks itself, before the upload reaches the API:
+
+- An upload with no `Content-Length` gets `VALIDATION_FAILED` (422), with one `errors` entry whose `path` is `content-length`. An upload whose `Content-Length` is over 6 MB (11 MB for compare, which carries two files) gets `FILE_TOO_LARGE` (413) without being read.
+
+| Code | HTTP status |
+|------|-------------|
+| [`API_UNAVAILABLE`](#API_UNAVAILABLE) | 502 |
+
+<a id="API_UNAVAILABLE"></a>
+## API_UNAVAILABLE (502)
+
+The web app could not reach the API (it is down, restarting, or `API_BASE_URL` is wrong). **Fix:** retry in a moment; if it persists, check that the API is running and that `API_BASE_URL` points at it.
