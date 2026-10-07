@@ -150,7 +150,7 @@ All the real work is in `@alihdrndm/roomlist-core`, a plain TypeScript library w
 
 Field names and formats were taken from public vendor documentation, not tested against a running hotel system. [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md) lists every unverified item (A1 to A8) with how to check it and what to change.
 
-- OPERA 5: the XML root and record element names, the date of birth format, and how sharers are counted.
+- OPERA 5: the XML root and record element names (if your template differs, set the `rootElement` and `recordElement` options), the date of birth format, and how sharers are counted.
 - OPERA Cloud: the Excel heading labels, dates written as text, and the email type code.
 - Maestro: the column order and header row, and the gender code. Check each against your hotel's own template before a real import.
 
@@ -161,7 +161,6 @@ Field names and formats were taken from public vendor documentation, not tested 
 - Push to OPERA Cloud through Oracle Hospitality Integration Platform instead of a file.
 - Saved column mappings per hotel.
 - Publish `@alihdrndm/roomlist-core` and the CLI to npm.
-- Per-user rate limits for web traffic (today web users share limits per server address after deployment).
 
 ## License
 

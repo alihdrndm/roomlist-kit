@@ -4,8 +4,9 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    # Published on this machine only: the API key below is a public placeholder.
     ports:
-      - "4010:4010"
+      - "127.0.0.1:4010:4010"
     environment:
       # The API key is always set (spec). The default is a local placeholder,
       # never a real secret; override it with API_KEY in your shell or .env.
@@ -18,7 +19,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     ports:
-      - "3010:3010"
+      - "127.0.0.1:3010:3010"
     environment:
       API_BASE_URL: http://api:4010
       API_KEY: ${API_KEY:-local-dev-key}
