@@ -21,8 +21,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
     "@faker-js/faker": "^10.6.0",
-    "@playwright/test": "^1.63.0",
-    "concurrently": "^10.0.5",
+    "@playwright/test": "^1.64.0",
+    "concurrently": "^10.0.6",
     "exceljs": "^4.4.0",
     "sst": "^3.19.3",
     "typescript": "^5.9.3"
