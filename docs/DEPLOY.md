@@ -16,7 +16,9 @@ Run these from the repo root. `dev` is the stage name; use any name you like, an
 # 1. Set the API key once per stage (choose a long random value; it is stored in your AWS account, not in the repo)
 pnpm sst secret set ApiKey "<a-long-random-value>" --stage dev
 
-# 2. Deploy. Prints the API URL and the web URL when done.
+# 2. Build (the web app bundles core's pure modules from packages/core/dist), then deploy.
+#    Prints the API URL and the web URL when done.
+pnpm build
 pnpm sst deploy --stage dev
 
 # 3. Remove everything the stage created (stops all billing for it)

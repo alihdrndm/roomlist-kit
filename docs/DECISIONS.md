@@ -465,3 +465,40 @@ The second review run left two unbounded-cost cases. Both are fixed in core; thi
 - **GitHub settings, applied with `gh` at the owner's request:** private vulnerability reporting on (SECURITY.md already pointed to it), Dependabot alerts and security updates on, CodeQL default setup on, secret scanning and push protection (already on). Squash merge only, with the PR title as the commit title. Branches deleted after merge, auto-merge allowed, wiki and projects off.
 - **Ruleset "Protect main"** (owner choice): no deletion, no force push, changes through a pull request (0 approvals required, because a solo maintainer cannot approve their own PR; review threads must be resolved), and the CI jobs `verify` and `e2e` must pass. Repository admins can bypass.
 - **Files:** `.github/dependabot.yml` (npm, GitHub Actions and Docker, weekly; minor and patch updates grouped; no major bumps for `sst`, `typescript` or the Node base image, which are pinned on purpose), `CODEOWNERS`, issue forms that warn against attaching real rooming lists, a PR template, `CODE_OF_CONDUCT.md` (adopts Contributor Covenant 2.1 by reference). CI now has `permissions: contents: read`, cancels superseded runs, and runs `push` only for `main` (other branches are tested through their PR).
+
+## 2026-11-05 (web redesign)
+
+Product discovery and the design direction are in `docs/redesign/DISCOVERY.md` and `docs/redesign/DESIGN.md`. No API contract changed: every request the web app sends uses parts and options the API already accepted.
+
+### Self-hosted fonts instead of the system stack (replaces M7 "System fonts")
+- **Did:** Newsreader (display), IBM Plex Sans (text) and IBM Plex Mono (codes and dates) as woff2 files in `apps/web/public/fonts`, with their SIL OFL 1.1 licence texts, loaded by `@font-face` in `globals.css`.
+- **Why:** typography carries most of the new design. The files are committed, so `next build` and the Docker build still need no network access, which was the reason for the M7 decision. They are assets, not dependencies (OP7). About 120 KB load on first visit; Latin Extended loads only when a guest name needs it.
+
+### Design tokens, and Tailwind's default palette switched off
+- **Did:** colours, fonts, radii, shadows and two animations are `@theme` tokens in `globals.css`; `--color-*: initial` removes Tailwind's palette, so only the tokens can be used. Contrast for each text colour is recorded in `docs/redesign/DESIGN.md`. Input borders use a 3.5:1 tone (WCAG 1.4.11). Still light theme only.
+
+### Pure core subpaths may be imported by the web app (amends M7 "Shared report schemas live in core")
+- **Did:** `packages/core/package.json` exports three dependency-free modules: `./plain-date`, `./rules` (`issues.ts`) and `./header-aliases` (the alias table, moved from `headers.ts` into its own module unchanged). Core also gained `dayOfWeek` in `plain-date.ts`. The web app imports values only from these subpaths; the main entry stays type-only in the browser. `client-boundary.test.ts` now fails if any app file imports a value from another core entry.
+- **Why:** convention 3 says all date math goes through `plain-date.ts`, and the new night labels, block-window marks and compare deltas need date math in the browser. Copying it would break the convention; importing the main entry would ship exceljs. The guide page shows core's alias and rule tables instead of copies.
+- **Consequence:** the web build now needs core's `dist/` (as the API always did). `pnpm dev`, `pnpm build`, Playwright and the Docker build already build core first; `docs/DEPLOY.md` now says to run `pnpm build` before `sst deploy`.
+
+### Validation starts when a file is chosen; settings changes mark the report stale
+- **Did:** choosing a file or loading the sample sends one validate request. Editing the block, the date order, the worksheet or a column mapping no longer clears the report; it is shown as out of date, conversion waits, and "Validate again" applies the change.
+- **Why:** fewer steps, and no lost context while adjusting settings. Requests are never sent per keystroke, because web users share one rate-limit bucket once deployed (M8).
+
+### Column mapping, worksheet and max occupancy in the web form
+- **Did:** the Columns tab sends `options.columnMap` (header text exactly as in the file → field, or null to ignore); `.xlsx` files get an optional worksheet name (`options.sheetName`); the block form edits `maxOccupancy` per room type. All three were already accepted by the API; the web app did not offer them (W201's own message says "map it").
+- **Block files:** "Load block file" and "Save block file" read and write the same JSON the CLI's `--block` and the API's `block` part take, so a block can be reused without the server storing anything.
+
+### Shareable outputs are built in the browser
+- **Did:** the issue list (CSV), a plain-text note for the list's owner, the compare change list (CSV) and an update note for the hotel. CSV cells that start with `= + - @` are prefixed with an apostrophe (CSV injection), and files start with a UTF-8 BOM for Excel.
+- **Why:** planners send these by email today by retyping; nothing extra reaches the server.
+
+### Compare: room-night change per night and per room type
+- **Did:** computed in the browser from the diff's added, removed and changed guests (unchanged pairs never differ in dates, rooms, room type or sharing). A unit test checks that both breakdowns add up to `roomNightsDelta`. "Compare with a newer version" and "Open in Validate" hand a file between pages in memory (`components/handoff.tsx`), never in browser storage.
+
+### Not built: needs the owner's decision
+- Contracted inventory (pickup vs block, attrition, cut-off, comps) needs new `BlockContext` fields: an API contract and business-rule change.
+- Maestro has no rooms column, so an entry with `rooms > 1` is written as one row without a warning; refusing, splitting or warning changes export behaviour.
+- Field coverage per target (which fields each format drops) belongs in `/v1/formats`.
+- Remembering settings in browser storage changes the privacy wording; the block file covers reuse for now.

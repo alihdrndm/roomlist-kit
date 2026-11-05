@@ -9,7 +9,7 @@ roomlist-kit is one library with three front doors. All the domain logic lives i
 | `packages/core` | `@alihdrndm/roomlist-core` | Parse, validate, summarize, export and diff rooming lists. Pure TypeScript, no Node-only APIs in the domain code. | zod, fflate, exceljs (writing), xmlbuilder2, csv-stringify |
 | `packages/cli` | `@alihdrndm/roomlist-cli` | `roomlist` command: validate, convert, diff, formats. | core, commander |
 | `apps/api` | `api` | NestJS HTTP API on port 4010 (`/v1/...`, `/healthz`, `/readyz`, `/docs`). | core, NestJS, nestjs-pino, helmet, throttler, swagger |
-| `apps/web` | `web` | Next.js app on port 3010: `/`, `/compare`, `/formats`, plus `/api/*` route handlers. | core (types only), Next.js, React, Tailwind |
+| `apps/web` | `web` | Next.js app on port 3010: `/`, `/compare`, `/formats`, `/guide`, plus `/api/*` route handlers. | core (types, plus the pure subpaths `plain-date`, `rules`, `header-aliases`), Next.js, React, Tailwind |
 | `infra/`, `sst.config.ts` | — | SST v3 definitions (API as a Fargate service, web as `sst.aws.Nextjs`). Deploy-ready, not deployed. | sst |
 | `fixtures/` | — | Synthetic input files, blocks and golden expected outputs. | — |
 
@@ -59,7 +59,9 @@ flowchart LR
 | OpenAPI document and `/docs` | `apps/api/src/openapi.ts`, `swagger.ts` |
 | Health endpoints | `apps/api/src/health.controller.ts` |
 | Web proxy (bounded upload, header allow-list) | `apps/web/src/lib/proxy.ts` |
-| Web pages | `apps/web/src/app/validate-convert.tsx`, `compare/compare.tsx`, `formats/page.tsx` |
+| Web pages | `apps/web/src/app/*/page.tsx`; screens in `apps/web/src/components/validate/*` (workbench, report tabs, export) and `components/compare/compare.tsx` |
+| Web design system | `apps/web/src/app/globals.css` (tokens), `apps/web/src/components/ui/*`, `components/icons.tsx`; see `docs/redesign/DESIGN.md` |
+| Web report logic (pure, unit-tested against core) | `apps/web/src/lib/report.ts`, `diff.ts`, `dates.ts`, `csv.ts`, `rules.ts`, `fields.ts` |
 | Option inputs from JSON Schema | `apps/web/src/lib/forms.ts` |
 | Containers | `apps/api/Dockerfile`, `apps/web/Dockerfile`, `compose.yaml` |
 | Cloud resources | `sst.config.ts`, `infra/api.ts`, `infra/web.ts` (see `docs/DEPLOY.md`) |
@@ -73,4 +75,4 @@ flowchart LR
 | CLI tests against the built binary | `packages/cli/src/cli.e2e.test.ts`, `format.test.ts` | `pnpm test` |
 | API unit and e2e tests | `apps/api/src/*.test.ts`, `apps/api/test/*.e2e.test.ts` | `pnpm test`, `pnpm test:e2e` |
 | Web unit tests | `apps/web/src/**/*.test.ts` | `pnpm test` |
-| Playwright smoke and keyboard tests | `apps/web/e2e` | `pnpm test:e2e` |
+| Playwright smoke, keyboard and redesign flow tests | `apps/web/e2e` | `pnpm test:e2e` |

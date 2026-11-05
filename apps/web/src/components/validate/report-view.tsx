@@ -148,7 +148,7 @@ export function ReportView({
           label="Errors"
           value={errors}
           tone={errors > 0 ? "danger" : "neutral"}
-          detail={errors > 0 ? "Block conversion" : "None"}
+          detail={errors > 0 ? "Must be fixed" : "None"}
         />
         <Stat
           id="warnings"

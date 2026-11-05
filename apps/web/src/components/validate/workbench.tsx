@@ -130,6 +130,23 @@ export function Workbench() {
   const stale =
     run !== undefined && inputs !== undefined && keyOf(inputs) !== run.key;
 
+  // On narrow screens the report sits below the settings: bring it into view when
+  // a check finishes, unless its top is already visible.
+  const revealReport = () => {
+    requestAnimationFrame(() => {
+      const top = reportRef.current?.getBoundingClientRect().top;
+      if (
+        top !== undefined &&
+        (top > window.innerHeight * 0.8 || top < 0) &&
+        window.innerWidth < 1024
+      )
+        reportRef.current?.scrollIntoView({
+          behavior: scrollBehavior(),
+          block: "start",
+        });
+    });
+  };
+
   const validate = async (next: Inputs) => {
     const request = ++latest.current;
     setValidating(true);
@@ -152,6 +169,7 @@ export function Workbench() {
       // A file whose required columns were not found is fixed by mapping them.
       if (report.issues.some((issue) => issue.ruleId === "F005"))
         setTab("columns");
+      revealReport();
     } else {
       setRun(undefined);
       setProblem(result.problem);
@@ -221,14 +239,17 @@ export function Workbench() {
     const target = details.querySelector<HTMLElement>(
       field === undefined ? "input" : `[data-field="${field}"]`,
     );
-    target?.scrollIntoView({ block: "center", behavior: "smooth" });
+    target?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     target?.focus({ preventScroll: true });
   };
 
   const showErrors = () => {
     setTab("issues");
     setFilter("error");
-    reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    reportRef.current?.scrollIntoView({
+      behavior: scrollBehavior(),
+      block: "start",
+    });
   };
 
   const usedBlock = run?.inputs.block;
@@ -562,6 +583,13 @@ export function Workbench() {
       </div>
     </div>
   );
+}
+
+/** Smooth scrolling, unless the person asked their system for reduced motion. */
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
 }
 
 /** What the report will hold, before there is one: real descriptions, no fake data. */

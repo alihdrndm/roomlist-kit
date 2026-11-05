@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 
 ## [Unreleased]
 
+### Changed
+
+- Web app redesigned: new design system (self-hosted fonts, tokens, components), a verdict-first report, responsive layouts with cards on phones, custom 404 and error pages, print styles.
+
+### Added
+
+- Web: column mapping, worksheet name, max occupancy per room type, load/save block file, issue search and grouping, guests & rooms, nights by room type, issue list CSV and a note for the client, compare deltas per night and room type, update note and CSV for the hotel, a Guide page with every check and a template.
+- Core: `dayOfWeek`, `HEADER_ALIASES`, and the pure subpath exports `./plain-date`, `./rules` and `./header-aliases`.
+
 ## [0.1.0] - 2026-10-07
 
 ### Added
