@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Problem } from "@/lib/problem";
-import { ProblemNotice } from "./ui";
+import { ProblemNotice } from "./problem-notice";
 
 const issue = (row: number, side?: "before" | "after") => ({
   severity: "error",

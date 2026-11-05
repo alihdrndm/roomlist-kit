@@ -79,6 +79,11 @@ export function dateParts(date: IsoDate): {
   };
 }
 
+/** Day of the week, 0 = Sunday to 6 = Saturday (the web app labels nights "Tue 10 Nov"). */
+export function dayOfWeek(date: IsoDate): number {
+  return toUtc(date).getUTCDay();
+}
+
 const MS_PER_DAY_EXCEL = 24 * 3600 * 1000;
 
 /**

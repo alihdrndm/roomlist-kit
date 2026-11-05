@@ -3,6 +3,7 @@ import {
   addDays,
   compareDates,
   dateParts,
+  dayOfWeek,
   diffDays,
   eachNight,
   fromParts,
@@ -76,5 +77,18 @@ describe("date arithmetic", () => {
       month: 11,
       day: 5,
     });
+  });
+});
+
+describe("dayOfWeek", () => {
+  it("names the weekday of a calendar date, 0 = Sunday", () => {
+    const day = (text: string) => {
+      const date = parseIsoDate(text);
+      if (date === undefined) throw new Error(text);
+      return dayOfWeek(date);
+    };
+    expect(day("2026-11-10")).toBe(2); // Tuesday
+    expect(day("2026-11-15")).toBe(0); // Sunday
+    expect(day("2024-02-29")).toBe(4); // Thursday, leap day
   });
 });

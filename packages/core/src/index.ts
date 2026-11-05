@@ -29,10 +29,12 @@ export {
 export { makeIssue, RULES, type RuleId, sortIssues } from "./issues.js";
 export * from "./model.js";
 export { nameKey, normaliseName } from "./name-key.js";
+export { HEADER_ALIASES } from "./parse/header-aliases.js";
 export { parseRoomingList } from "./parse/parse.js";
 export {
   addDays,
   compareDates,
+  dayOfWeek,
   diffDays,
   eachNight,
   type IsoDate,

@@ -10,7 +10,7 @@ export type BlockForm = {
   shoulderDays: string;
   /** Comma-separated room type codes. */
   roomTypes: string;
-  /** Not a form field; kept from a loaded block file so its checks still apply. */
+  /** Most guests per room, by room type (rule R013); edited per room type, kept from a loaded block file. */
   maxOccupancy?: Record<string, number>;
 };
 
@@ -54,6 +54,35 @@ export function buildBlock(
   if (form.maxOccupancy !== undefined && Object.keys(block).length > 0)
     block.maxOccupancy = form.maxOccupancy;
   return Object.keys(block).length === 0 ? undefined : block;
+}
+
+/** The room type codes typed in the form, trimmed, without blanks or repeats. */
+export function roomTypeList(form: BlockForm): string[] {
+  const types = form.roomTypes
+    .split(",")
+    .map((type) => type.trim())
+    .filter((type) => type !== "");
+  return [...new Set(types)];
+}
+
+/**
+ * Sets the most guests per room for one room type. The API accepts whole numbers
+ * from 1 to 10, so only those are stored; a blank or any other value clears it.
+ */
+export function withMaxOccupancy(
+  form: BlockForm,
+  roomType: string,
+  text: string,
+): BlockForm {
+  const next = { ...(form.maxOccupancy ?? {}) };
+  const value = Number(text);
+  if (/^\d+$/.test(text.trim()) && value >= 1 && value <= 10)
+    next[roomType] = value;
+  else delete next[roomType];
+  const { maxOccupancy: _previous, ...rest } = form;
+  return Object.keys(next).length === 0
+    ? rest
+    : { ...rest, maxOccupancy: next };
 }
 
 /** Fills the form from a block JSON file (the "Load sample" button uses tech26.json). */

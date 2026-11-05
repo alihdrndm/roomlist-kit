@@ -9,7 +9,9 @@ import {
   fileNameFrom,
   formatBytes,
   optionFields,
+  roomTypeList,
   signed,
+  withMaxOccupancy,
 } from "@/lib/forms";
 
 const tech26: unknown = JSON.parse(
@@ -154,5 +156,27 @@ describe("fileNameFrom", () => {
   it("falls back when there is no header or no file name", () => {
     expect(fileNameFrom(null, "x.bin")).toBe("x.bin");
     expect(fileNameFrom("attachment", "x.bin")).toBe("x.bin");
+  });
+});
+
+describe("room types and max occupancy", () => {
+  it("lists room types once, trimmed", () => {
+    expect(
+      roomTypeList({ ...EMPTY_BLOCK, roomTypes: " KING, QQ ,,KING" }),
+    ).toEqual(["KING", "QQ"]);
+  });
+
+  it("stores whole numbers 1–10 per type and clears anything else", () => {
+    const one = withMaxOccupancy(EMPTY_BLOCK, "KING", "3");
+    expect(one.maxOccupancy).toEqual({ KING: 3 });
+    expect(withMaxOccupancy(one, "QQ", "4").maxOccupancy).toEqual({
+      KING: 3,
+      QQ: 4,
+    });
+    expect(withMaxOccupancy(one, "KING", "11").maxOccupancy).toBeUndefined();
+    expect(withMaxOccupancy(one, "KING", "").maxOccupancy).toBeUndefined();
+    expect(withMaxOccupancy(one, "QQ", "two").maxOccupancy).toEqual({
+      KING: 3,
+    });
   });
 });

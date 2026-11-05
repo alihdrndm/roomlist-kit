@@ -15,6 +15,21 @@
       "@alihdrndm/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./plain-date": {
+      "@alihdrndm/source": "./src/plain-date.ts",
+      "types": "./dist/plain-date.d.ts",
+      "default": "./dist/plain-date.js"
+    },
+    "./rules": {
+      "@alihdrndm/source": "./src/issues.ts",
+      "types": "./dist/issues.d.ts",
+      "default": "./dist/issues.js"
+    },
+    "./header-aliases": {
+      "@alihdrndm/source": "./src/parse/header-aliases.ts",
+      "types": "./dist/parse/header-aliases.d.ts",
+      "default": "./dist/parse/header-aliases.js"
     }
   },
   "files": [

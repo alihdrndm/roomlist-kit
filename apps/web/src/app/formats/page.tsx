@@ -1,20 +1,33 @@
 import type { Metadata } from "next";
-import { EmptyState, ProblemNotice } from "@/components/ui";
+import { CheckIcon, ExternalIcon, WarningIcon } from "@/components/icons";
+import { Badge, EmptyState } from "@/components/ui/feedback";
+import { ProblemNotice } from "@/components/ui/problem-notice";
+import { Card, PageHeader } from "@/components/ui/surface";
+import { labelFor } from "@/lib/fields";
 import { optionFields } from "@/lib/forms";
 import { readProblem } from "@/lib/problem";
 import { getFromApi } from "@/lib/proxy";
 import type { TargetInfo, TargetsResponse } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Formats – roomlist-kit" };
+export const metadata: Metadata = { title: "Export formats" };
 export const dynamic = "force-dynamic";
+
+/** Who imports each target; the ids come from the API, the words are ours. */
+const SYSTEM: Record<string, string> = {
+  "opera5-xml": "Oracle OPERA 5 (on-premises)",
+  "opera-cloud-xlsx": "Oracle OPERA Cloud",
+  "maestro-csv": "Maestro PMS",
+  "canonical-json": "Your own scripts and tools",
+  "canonical-csv": "Spreadsheets and other tools",
+};
 
 export default async function FormatsPage() {
   const response = await getFromApi("/v1/formats");
   if (!response.ok) {
     const problem = await readProblem(response);
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Formats</h1>
+      <div className="space-y-8">
+        <PageHeader eyebrow="Reference" title="Export formats" />
         <ProblemNotice problem={problem} />
       </div>
     );
@@ -22,130 +35,235 @@ export default async function FormatsPage() {
   const { targets } = (await response.json()) as TargetsResponse;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Formats</h1>
-        <p className="mt-2 max-w-2xl text-zinc-700">
-          What each export format contains, and which parts are checked against
-          the vendor&apos;s documentation and which are assumed.
+    <div className="space-y-10">
+      <PageHeader eyebrow="Reference" title="Export formats">
+        <p>
+          What each import file contains, and which details were checked against
+          the vendor&apos;s public documentation and which are assumed. Nothing
+          here was tested on a live hotel system, so check the assumed details
+          against your property&apos;s template before a real import.
         </p>
-      </div>
+      </PageHeader>
       {targets.length === 0 ? (
-        <EmptyState>The API lists no export formats.</EmptyState>
+        <EmptyState title="The API lists no export formats." />
       ) : (
-        targets.map((target) => <TargetCard key={target.id} target={target} />)
+        <>
+          <nav aria-label="Formats on this page">
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {targets.map((target) => {
+                const assumed = target.provenance.filter(
+                  (item) => item.status === "assumed",
+                ).length;
+                return (
+                  <li key={target.id}>
+                    <a
+                      href={`#${target.id}`}
+                      className="flex h-full flex-col rounded-lg border border-line bg-surface p-4 shadow-card transition-colors hover:border-ink-3"
+                    >
+                      <span className="text-xs text-ink-3">
+                        {SYSTEM[target.id] ?? "Import file"}
+                      </span>
+                      <span className="mt-1 text-sm font-semibold text-ink">
+                        {target.label}
+                      </span>
+                      <span className="mt-3 flex flex-wrap gap-1.5">
+                        <Badge mono>.{target.fileExtension}</Badge>
+                        {target.provenance.length === 0 ? (
+                          <Badge>Own format</Badge>
+                        ) : assumed > 0 ? (
+                          <Badge tone="warning">{assumed} assumed</Badge>
+                        ) : (
+                          <Badge tone="success">Verified</Badge>
+                        )}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+          <div className="space-y-6">
+            {targets.map((target) => (
+              <TargetSection key={target.id} target={target} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function TargetCard({ target }: { target: TargetInfo }) {
+/** "A1: XML envelope (…)" → ["A1", "XML envelope (…)"]. */
+function splitId(aspect: string): [string | undefined, string] {
+  const match = /^(A\d+): (.*)$/.exec(aspect);
+  return match ? [match[1], match[2] ?? aspect] : [undefined, aspect];
+}
+
+function TargetSection({ target }: { target: TargetInfo }) {
   const headingId = `format-${target.id}`;
   const fields = optionFields(target.optionsSchema);
+  const verified = target.provenance.filter(
+    (item) => item.status === "verified",
+  );
+  const assumed = target.provenance.filter((item) => item.status === "assumed");
   return (
-    <section
-      aria-labelledby={headingId}
-      className="rounded-lg border border-zinc-300 bg-white p-4"
+    <Card
+      as="section"
+      labelledBy={headingId}
+      className="scroll-mt-6 overflow-hidden"
     >
-      <h2 id={headingId} className="text-xl font-semibold">
-        {target.label}
-      </h2>
-      <p className="mt-1 text-zinc-700">
-        File type: <code>.{target.fileExtension}</code> ({target.contentType})
-      </p>
-
-      <h3 className="mt-4 text-sm font-semibold text-zinc-900">Options</h3>
-      {fields.length === 0 ? (
-        <p className="mt-1 text-zinc-700">No options.</p>
-      ) : (
-        <ul className="mt-1 list-disc pl-5 text-zinc-700">
-          {fields.map((field) => (
-            <li key={field.name}>
-              <code>{field.name}</code>: {field.kind}, default{" "}
-              {field.defaultValue === "" ? (
-                "none"
-              ) : (
-                <code>{String(field.defaultValue)}</code>
-              )}
-              , {field.required ? "required" : "optional"}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h3 className="mt-4 text-sm font-semibold text-zinc-900">
-        What is verified
-      </h3>
-      {target.provenance.length === 0 ? (
-        <p className="mt-1 text-zinc-700">
-          Our own format; nothing to verify against.
-        </p>
-      ) : (
-        <div className="mt-1 overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
-            <caption className="sr-only">
-              Verified and assumed aspects of {target.label}
-            </caption>
-            <thead>
-              <tr className="border-b border-zinc-300 text-zinc-900">
-                <th scope="col" className="w-1/2 py-2 pr-4 font-semibold">
-                  Verified
-                </th>
-                <th scope="col" className="w-1/2 py-2 font-semibold">
-                  Assumed
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="align-top text-zinc-700">
-                <td className="py-2 pr-4">
-                  <ProvenanceList
-                    items={target.provenance.filter(
-                      (item) => item.status === "verified",
-                    )}
-                  />
-                </td>
-                <td className="py-2">
-                  <ProvenanceList
-                    items={target.provenance.filter(
-                      (item) => item.status === "assumed",
-                    )}
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div
+        id={target.id}
+        className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-5 sm:px-6"
+      >
+        <div>
+          <p className="text-xs text-ink-3">
+            {SYSTEM[target.id] ?? "Import file"}
+          </p>
+          <h2
+            id={headingId}
+            className="mt-1 font-display text-2xl font-medium text-ink"
+          >
+            {target.label}
+          </h2>
         </div>
-      )}
-    </section>
+        <p className="flex flex-wrap items-center gap-2 text-[13px] text-ink-2">
+          <Badge mono>.{target.fileExtension}</Badge>
+          <span className="font-mono text-[11.5px] text-ink-3">
+            {target.contentType}
+          </span>
+        </p>
+      </div>
+      <div className="grid gap-8 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div>
+          <h3 className="text-[13px] font-semibold text-ink">Options</h3>
+          {fields.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-2">No options.</p>
+          ) : (
+            <dl className="mt-2 divide-y divide-line rounded-md border border-line">
+              {fields.map((field) => (
+                <div key={field.name} className="px-3 py-2.5 text-[13px]">
+                  <dt className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-medium text-ink">
+                      {labelFor(field.name)}
+                    </span>
+                    <code className="font-mono text-[11.5px] text-ink-3">
+                      {field.name}
+                    </code>
+                  </dt>
+                  <dd className="mt-0.5 text-ink-2">
+                    {field.kind === "select"
+                      ? `One of ${field.choices.join(", ")}`
+                      : field.kind === "checkbox"
+                        ? "On or off"
+                        : "Text"}
+                    {" · default "}
+                    {field.defaultValue === "" ? (
+                      "none"
+                    ) : (
+                      <code className="font-mono text-[12px] text-ink">
+                        {String(field.defaultValue)}
+                      </code>
+                    )}
+                    {field.required ? " · required" : ""}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+        <div className="space-y-6">
+          {target.provenance.length === 0 ? (
+            <div>
+              <h3 className="text-[13px] font-semibold text-ink">
+                What is verified
+              </h3>
+              <p className="mt-2 text-sm text-ink-2">
+                Our own format; nothing to verify against.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ProvenanceList
+                title="Verified from vendor documentation"
+                items={verified}
+                tone="verified"
+              />
+              <ProvenanceList
+                title="Assumed, not verified"
+                items={assumed}
+                tone="assumed"
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 
-/** One column of the provenance table: each aspect with its source (a link when it is a URL). */
-function ProvenanceList({ items }: { items: TargetInfo["provenance"] }) {
-  if (items.length === 0) return <p>None.</p>;
+/** One list of provenance items; each source shows as its site name, linking to the full address. */
+function ProvenanceList({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: TargetInfo["provenance"];
+  tone: "verified" | "assumed";
+}) {
   return (
-    <ul className="space-y-2">
-      {items.map((item) => (
-        <li key={`${item.aspect}-${item.source}`}>
-          <span className="font-medium text-zinc-900">{item.aspect}</span>
-          <br />
-          <span className="break-words">
-            Source:{" "}
-            {item.source.startsWith("http") ? (
-              <a
-                href={item.source}
-                className="text-blue-800 underline"
-                rel="noreferrer"
+    <div>
+      <h3 className="text-[13px] font-semibold text-ink">
+        {title} <span className="font-normal text-ink-3">· {items.length}</span>
+      </h3>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-2">None.</p>
+      ) : (
+        <ul className="mt-2 space-y-2.5">
+          {items.map((item) => {
+            const [id, aspect] = splitId(item.aspect);
+            return (
+              <li
+                key={`${item.aspect}-${item.source}`}
+                className="flex gap-2.5 text-[13px] leading-5"
               >
-                {item.source}
-              </a>
-            ) : (
-              item.source
-            )}
-          </span>
-        </li>
-      ))}
-    </ul>
+                {tone === "verified" ? (
+                  <CheckIcon className="mt-0.5 size-4 text-success" />
+                ) : (
+                  <WarningIcon className="mt-0.5 size-4 text-warning" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-ink">
+                    {id !== undefined && (
+                      <Badge tone="warning" mono className="mr-1.5">
+                        {id}
+                      </Badge>
+                    )}
+                    {aspect}
+                  </p>
+                  <p className="mt-0.5 text-ink-2 [overflow-wrap:anywhere]">
+                    {item.source.startsWith("http") ? (
+                      <a
+                        href={item.source}
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-accent underline underline-offset-2"
+                        title={item.source}
+                      >
+                        Source:{" "}
+                        {new URL(item.source).hostname.replace(/^www\./, "")}
+                        <ExternalIcon className="size-3" />
+                      </a>
+                    ) : (
+                      item.source
+                    )}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

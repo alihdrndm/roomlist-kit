@@ -5,92 +5,14 @@ import {
   type Column,
   type Issue,
 } from "../model.js";
-
-// Normalised header text → canonical field (the spec's alias table).
-const ALIASES: Record<CanonicalField, string[]> = {
-  line: [
-    "line",
-    "lineno",
-    "linenumber",
-    "no",
-    "number",
-    "record",
-    "recordnumber",
-    "suffix",
-    "suffixno",
-    "rowid",
-  ],
-  lastName: ["lastname", "last", "surname", "familyname", "guestlastname"],
-  firstName: ["firstname", "first", "givenname", "forename", "guestfirstname"],
-  fullName: ["name", "fullname", "guestname", "guest"],
-  title: ["title", "salutation", "prefix", "guesttitle"],
-  email: ["email", "emailaddress", "mail"],
-  phone: ["phone", "phonenumber", "mobile", "cell", "telephone", "tel"],
-  arrivalDate: [
-    "arrival",
-    "arrivaldate",
-    "checkin",
-    "checkindate",
-    "arrive",
-    "datein",
-  ],
-  departureDate: [
-    "departure",
-    "departuredate",
-    "checkout",
-    "checkoutdate",
-    "depart",
-    "dateout",
-  ],
-  roomType: [
-    "roomtype",
-    "room",
-    "roomcategory",
-    "roomcode",
-    "buildingroomtype",
-  ],
-  rooms: ["rooms", "numberofrooms", "numberrooms", "noofrooms", "roomcount"],
-  adults: ["adults", "adult", "numberadults", "numberofadults"],
-  children: ["children", "child", "numberchildren", "numberofchildren", "kids"],
-  infants: ["infants", "infant", "numberofinfants"],
-  sharesWithLine: [
-    "shareswith",
-    "sharewith",
-    "sharer",
-    "shareline",
-    "sharerecordnumber",
-    "sharersuffix",
-  ],
-  confirmationNumber: [
-    "confirmation",
-    "confirmationnumber",
-    "confirmationno",
-    "conf",
-    "confno",
-    "bookingreference",
-    "reservationnumber",
-  ],
-  gender: ["gender", "sex"],
-  dateOfBirth: ["dateofbirth", "dob", "birthdate"],
-  nationality: ["nationality", "nationalitycode"],
-  language: ["language", "languagecode"],
-  passport: ["passport", "passportnumber", "passportno"],
-  specialRequests: [
-    "specialrequests",
-    "requests",
-    "notes",
-    "comments",
-    "remarks",
-  ],
-  travelAgentLocator: ["tarecordlocator", "recordlocator", "talocator"],
-};
+import { HEADER_ALIASES } from "./header-aliases.js";
 
 const ALIAS_LOOKUP = new Map<string, CanonicalField>();
 for (const field of CanonicalFieldSchema.options) {
   // Each canonical name is also accepted as written ("sharesWithLine"), so the
   // canonical-csv export can be read back in. See docs/DECISIONS.md, 2026-10-06.
   ALIAS_LOOKUP.set(normaliseHeader(field), field);
-  for (const alias of ALIASES[field]) ALIAS_LOOKUP.set(alias, field);
+  for (const alias of HEADER_ALIASES[field]) ALIAS_LOOKUP.set(alias, field);
 }
 
 /** Lower-case and drop everything that is not a–z or 0–9: "Check-In" → "checkin", "# Adults" → "adults". */

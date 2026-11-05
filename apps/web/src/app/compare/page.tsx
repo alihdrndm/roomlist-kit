@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { Compare } from "./compare";
+import { Compare } from "@/components/compare/compare";
+import { PageHeader } from "@/components/ui/surface";
 
-export const metadata: Metadata = { title: "Compare – roomlist-kit" };
+export const metadata: Metadata = { title: "Compare two lists" };
 
 export default function ComparePage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Compare two lists
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-700">
-          Upload an earlier and a later version of the same rooming list to see
-          who was added, who was removed and what changed.
+    <div className="space-y-8">
+      <PageHeader eyebrow="Versions" title="Compare two lists">
+        <p>
+          The client sent a new version. Upload it with the one the hotel
+          already has to see who was added, removed or changed, and where the
+          room nights moved.
         </p>
-      </div>
+      </PageHeader>
       <Compare />
     </div>
   );

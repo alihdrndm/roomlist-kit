@@ -42,10 +42,8 @@ test("WE1: the validate and convert flow on / works with the keyboard only", asy
     page.getByRole("status").filter({ hasText: "Validated: 0 errors" }),
   ).toBeVisible();
 
-  const errorsFilter = page.getByRole("button", {
-    name: "Errors",
-    exact: true,
-  });
+  // The filter buttons show their count ("Errors 0"), so match the name's start.
+  const errorsFilter = page.getByRole("button", { name: /^Errors\b/ });
   await tabTo(page, errorsFilter);
   await page.keyboard.press("Space");
   await expect(errorsFilter).toHaveAttribute("aria-pressed", "true");
