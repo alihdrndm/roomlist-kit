@@ -26,6 +26,9 @@ export function SiteNav() {
             <li key={item.href} className="shrink-0">
               <Link
                 href={item.href}
+                // /formats is rendered per request from the API; prefetching it on
+                // every page would spend the shared rate limit on pages nobody opened.
+                prefetch={item.href === "/formats" ? false : null}
                 aria-current={current ? "page" : undefined}
                 className={cx(
                   "relative inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors duration-150",

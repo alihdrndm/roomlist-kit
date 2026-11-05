@@ -66,9 +66,14 @@ export function ExportPanel({
     { name: string; warnings: number } | undefined
   >();
   const optionRefs = useRef(new Map<string, HTMLElement>());
+  // Bumped by "Try again" when the list of formats could not be loaded.
+  const [formatsAttempt, setFormatsAttempt] = useState(0);
 
   useEffect(() => {
+    // Re-run on retry; the attempt number itself is not read.
+    void formatsAttempt;
     let cancelled = false;
+    setTargetsProblem(undefined);
     getJson<TargetsResponse>("/api/formats").then((outcome) => {
       if (cancelled) return;
       if (outcome.ok) {
@@ -86,7 +91,7 @@ export function ExportPanel({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [formatsAttempt]);
 
   // A new validation (or a change to the inputs) makes the last download's message stale.
   const lockKind = lock.kind;
@@ -228,7 +233,15 @@ export function ExportPanel({
           />
         )}
         {targetsProblem !== undefined && (
-          <ProblemNotice problem={targetsProblem} />
+          <ProblemNotice problem={targetsProblem}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setFormatsAttempt((attempt) => attempt + 1)}
+            >
+              Load the formats again
+            </Button>
+          </ProblemNotice>
         )}
         {targets === undefined && targetsProblem === undefined && (
           <Status>Loading the formats…</Status>
@@ -314,6 +327,7 @@ export function ExportPanel({
                       <p className="mt-3">
                         <Link
                           href={`/formats#${target.id}`}
+                          prefetch={false}
                           className="text-accent underline underline-offset-2"
                         >
                           What is verified and assumed for {target.label}

@@ -98,6 +98,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 public vendor documentation; check the{" "}
                 <Link
                   href="/formats"
+                  prefetch={false}
                   className="text-accent underline underline-offset-2"
                 >
                   assumptions
@@ -112,7 +113,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </Link>
               </li>
               <li>
-                <Link href="/formats" className="hover:text-ink">
+                <Link
+                  href="/formats"
+                  prefetch={false}
+                  className="hover:text-ink"
+                >
                   Formats
                 </Link>
               </li>
