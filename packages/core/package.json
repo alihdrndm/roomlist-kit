@@ -27,11 +27,11 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/coverage-v8": "^5.1.0",
     "csv-parse": "^7.0.3",
     "fast-check": "^4.10.2",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "csv-stringify": "^6.9.0",
